@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #5d5fef, #7a5cff);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Navbar */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.1);
+      padding: 12px 40px;
+      backdrop-filter: blur(10px);
+    }
+    .navbar-left, .navbar-right {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+    .navbar a {
+      color: white;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .navbar a:hover {
+      text-decoration: underline;
+    }
+    .btn {
+      background: #3b2dff;
+      border: none;
+      padding: 6px 16px;
+      border-radius: 20px;
+      color: white;
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    /* Main content */
+    .container {
+      flex-grow: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .card {
+      background: white;
+      padding: 40px;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+      width: 400px;
+      text-align: center;
+    }
+    .card h2 {
+      margin-bottom: 10px;
+    }
+    .card p {
+      color: gray;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <div class="navbar">
+    <div class="navbar-left">
+      <a href="#">🏠 Home</a>
+      <a href="#">Report Issue</a>
+      <a href="#">Map View</a>
+      <a href="#">Issues</a>
+    </div>
+    <div class="navbar-right">
+      <a href="signin.html">Sign in</a>
+      <button class="btn" onclick="window.location.href='enhanced-signup.html'">Sign up</button>
+    </div>
+  </div>
+
+  <!-- Dashboard -->
+  <div class="container">
+    <div class="card">
+      <h2>Welcome to your Dashboard 🎉</h2>
+      <p>You are now signed in successfully!</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enhanced Hazard Reporting</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { 
+      margin: 0; 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+    }
+    .navbar { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 20px 40px; 
+      color: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 100;
+    }
+    .navbar ul { display: flex; gap: 30px; list-style: none; margin: 0; padding: 0; }
+    .navbar ul li a { 
+      text-decoration: none; 
+      color: white; 
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .navbar ul li a:hover {
+      color: #ffd700;
+      transform: translateY(-2px);
+      text-shadow: 0 0 10px rgba(255,215,0,0.5);
+    }
+    .container { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 30px; 
+      padding: 40px 60px;
+      perspective: 1000px;
+    }
+    .card { 
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      padding: 30px; 
+      border-radius: 20px; 
+      box-shadow: 
+        20px 20px 60px #0d1b2a,
+        -20px -20px 60px #1f2937;
+      color: white;
+      transition: all 0.3s;
+      transform-style: preserve-3d;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: left 0.5s;
+    }
+    .card:hover::before { left: 100%; }
+    .card:hover {
+      transform: translateY(-6px) scale(1.02);
+      box-shadow: 
+        0 15px 35px rgba(13,27,42,0.3),
+        0 0 15px rgba(102,126,234,0.2);
+    }
+    .full-width { grid-column: 1 / -1; }
+    h2 {
+      background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    label {
+      color: #e2e8f0;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: block;
+    }
+    input, textarea, select { 
+      width: 100%; 
+      padding: 15px; 
+      border-radius: 12px; 
+      border: 2px solid rgba(102,126,234,0.3);
+      font-size: 16px;
+      margin-bottom: 15px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    input:focus, textarea:focus, select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 20px rgba(102,126,234,0.3);
+      transform: translateY(-2px);
+    }
+    .media-upload { 
+      border: 3px dashed rgba(102,126,234,0.5);
+      border-radius: 15px; 
+      padding: 30px; 
+      text-align: center; 
+      margin: 20px 0;
+      background: rgba(255,255,255,0.02);
+      transition: all 0.3s;
+      cursor: pointer;
+    }
+    .media-upload:hover {
+      border-color: #667eea;
+      background: rgba(102,126,234,0.1);
+      transform: translateY(-3px);
+    }
+    .media-preview { display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px; }
+    .media-item { 
+      position: relative; 
+      width: 120px; 
+      height: 120px;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      transition: all 0.3s;
+    }
+    .media-item:hover {
+      transform: scale(1.05) rotateY(5deg);
+    }
+    .media-item img, .media-item video { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover;
+    }
+    .remove-media { 
+      position: absolute; 
+      top: -8px; 
+      right: -8px; 
+      background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+      color: white; 
+      border: none; 
+      border-radius: 50%; 
+      width: 25px; 
+      height: 25px; 
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 5px 15px rgba(255,107,107,0.4);
+      transition: all 0.3s;
+    }
+    .remove-media:hover {
+      transform: scale(1.2);
+    }
+    #map { 
+      height: 350px; 
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .btn { 
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white; 
+      border: none; 
+      padding: 15px 25px; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      font-size: 16px;
+      font-weight: bold;
+      box-shadow: 0 10px 30px rgba(102,126,234,0.3);
+      transition: all 0.3s;
+    }
+    .btn:hover {
+      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 15px 40px rgba(102,126,234,0.4);
+    }
+    .offline-indicator { 
+      background: linear-gradient(45deg, #ff9800, #f57c00);
+      color: white; 
+      padding: 8px 15px; 
+      border-radius: 20px; 
+      font-size: 14px;
+      font-weight: bold;
+      box-shadow: 0 5px 15px rgba(255,152,0,0.3);
+    }
+    .priority-high { color: #ff6b6b; font-weight: bold; }
+    .priority-medium { color: #ffd93d; font-weight: bold; }
+    .priority-low { color: #6bcf7f; font-weight: bold; }
+    select option {
+      background: #1a1a2e;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo"><strong>🚨 Hazard Reporter</strong></div>
+    <ul>
+      <li><a href="home.html">🏠 Home</a></li>
+      <li><a href="enhanced-report.html">📝 Report Hazard</a></li>
+      <li><a href="crowd-dashboard.html">📊 Live Dashboard</a></li>
+      <li><a href="ocean-monitor.html">🌊 Ocean Monitor</a></li>
+      <li><a href="issues.html">📋 All Reports</a></li>
+    </ul>
+    <div id="offlineStatus" class="offline-indicator" style="display:none;">Offline Mode</div>
+  </nav>
+
+  <div class="container">
+    <div class="card">
+      <h2 id="reportTitle">Hazard Report Details</h2>
+      <form id="hazardForm">
+        <label id="titleLabel">Incident Title</label>
+        <input type="text" id="incidentTitle" required>
+        
+        <label id="typeLabel">Hazard Type</label>
+        <select id="hazardType" required>
+          <option value="">Select Type</option>
+          <option value="flood">Flood</option>
+          <option value="storm">Storm/Cyclone</option>
+          <option value="tsunami">Tsunami</option>
+          <option value="earthquake">Earthquake</option>
+          <option value="fire">Fire</option>
+          <option value="accident">Accident</option>
+          <option value="other">Other</option>
+        </select>
+        
+        <label id="severityLabel">Severity Level</label>
+        <select id="severity" required>
+          <option value="">Select Severity</option>
+          <option value="low" class="priority-low">Low - Minor Impact</option>
+          <option value="medium" class="priority-medium">Medium - Moderate Impact</option>
+          <option value="high" class="priority-high">High - Severe Impact</option>
+          <option value="critical" class="priority-high">Critical - Life Threatening</option>
+        </select>
+        
+        <label id="descLabel">Detailed Description</label>
+        <textarea id="description" rows="4" required></textarea>
+        
+        <label id="peopleLabel">People Affected (Estimate)</label>
+        <input type="number" id="peopleAffected" min="0">
+        
+        <div class="media-upload" onclick="document.getElementById('mediaFiles').click()">
+          <p id="uploadText">📷 Upload Photos/Videos (Click or Drag)</p>
+          <input type="file" id="mediaFiles" multiple accept="image/*,video/*" style="display:none;" onchange="handleMediaUpload()">
+        </div>
+        
+        <div id="mediaPreview" class="media-preview"></div>
+        
+        <button type="submit" class="btn" id="submitBtn">Submit Report</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2 id="locationTitle">Location & Contact</h2>
+      
+      <label id="latLabel">Latitude</label>
+      <input type="text" id="latitude" readonly>
+      
+      <label id="lngLabel">Longitude</label>
+      <input type="text" id="longitude" readonly>
+      
+      <label id="addressLabel">Address/Landmark</label>
+      <input type="text" id="address">
+      
+      <button type="button" class="btn" onclick="getCurrentLocation()" id="locationBtn">📍 Get Current Location</button>
+      
+      <div id="map"></div>
+      
+      <label id="contactLabel">Contact Number (Optional)</label>
+      <input type="tel" id="contactNumber">
+    </div>
+
+    <div class="card full-width">
+      <h2 id="socialTitle">Social Media Integration</h2>
+      <label id="hashtagLabel">Relevant Hashtags</label>
+      <input type="text" id="hashtags" placeholder="#flood #emergency #help">
+      
+      <label id="socialDescLabel">Social Media Description</label>
+      <textarea id="socialDescription" rows="2" placeholder="Brief description for social sharing"></textarea>
+      
+      <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <button type="button" class="btn" onclick="shareToSocial('twitter')" id="twitterBtn">Share to Twitter</button>
+        <button type="button" class="btn" onclick="shareToSocial('facebook')" id="facebookBtn">Share to Facebook</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map, marker, mediaFiles = [];
+    
+    // Initialize map
+    function initMap() {
+      map = L.map('map').setView([20.5937, 78.9629], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      
+      map.on('click', function(e) {
+        const { lat, lng } = e.latlng;
+        if (marker) marker.setLatLng([lat, lng]);
+        else marker = L.marker([lat, lng]).addTo(map);
+        
+        document.getElementById('latitude').value = lat.toFixed(6);
+        document.getElementById('longitude').value = lng.toFixed(6);
+      });
+    }
+
+    function getCurrentLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(pos => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          
+          document.getElementById('latitude').value = lat.toFixed(6);
+          document.getElementById('longitude').value = lng.toFixed(6);
+          
+          map.setView([lat, lng], 15);
+          if (marker) marker.setLatLng([lat, lng]);
+          else marker = L.marker([lat, lng]).addTo(map);
+        });
+      }
+    }
+
+    function handleMediaUpload() {
+      const files = document.getElementById('mediaFiles').files;
+      const preview = document.getElementById('mediaPreview');
+      
+      Array.from(files).forEach((file, index) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const mediaItem = document.createElement('div');
+          mediaItem.className = 'media-item';
+          
+          const element = file.type.startsWith('video/') ? 
+            `<video src="${e.target.result}" controls></video>` :
+            `<img src="${e.target.result}" alt="Preview">`;
+          
+          mediaItem.innerHTML = `
+            ${element}
+            <button class="remove-media" onclick="removeMedia(${mediaFiles.length})">×</button>
+          `;
+          
+          preview.appendChild(mediaItem);
+        };
+        reader.readAsDataURL(file);
+        mediaFiles.push(file);
+      });
+    }
+
+    function removeMedia(index) {
+      mediaFiles.splice(index, 1);
+      document.getElementById('mediaPreview').children[index].remove();
+    }
+
+    function shareToSocial(platform) {
+      const title = document.getElementById('incidentTitle').value;
+      const desc = document.getElementById('socialDescription').value;
+      const hashtags = document.getElementById('hashtags').value;
+      
+      const text = `${title} - ${desc} ${hashtags}`;
+      const url = window.location.href;
+      
+      if (platform === 'twitter') {
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`);
+      } else if (platform === 'facebook') {
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(text)}`);
+      }
+    }
+
+    // Offline support
+    function checkOnlineStatus() {
+      const indicator = document.getElementById('offlineStatus');
+      if (!navigator.onLine) {
+        indicator.style.display = 'block';
+      } else {
+        indicator.style.display = 'none';
+      }
+    }
+
+    document.getElementById('hazardForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const reportData = {
+        id: Date.now(),
+        title: document.getElementById('incidentTitle').value,
+        type: document.getElementById('hazardType').value,
+        severity: document.getElementById('severity').value,
+        description: document.getElementById('description').value,
+        peopleAffected: parseInt(document.getElementById('peopleAffected').value) || 0,
+        latitude: parseFloat(document.getElementById('latitude').value),
+        longitude: parseFloat(document.getElementById('longitude').value),
+        address: document.getElementById('address').value,
+        contact: document.getElementById('contactNumber').value,
+        hashtags: document.getElementById('hashtags').value,
+        socialDescription: document.getElementById('socialDescription').value,
+        mediaCount: mediaFiles.length,
+        timestamp: new Date().toISOString(),
+        reporter: JSON.parse(localStorage.getItem('user') || '{}'),
+        status: 'pending',
+        verified: false,
+        online: navigator.onLine,
+        likes: 0,
+        comments: []
+      };
+      
+      // Store in hazardReports
+      const reports = JSON.parse(localStorage.getItem('hazardReports') || '[]');
+      reports.push(reportData);
+      localStorage.setItem('hazardReports', JSON.stringify(reports));
+      
+      // Also store in issues for backward compatibility
+      const issues = JSON.parse(localStorage.getItem('issues') || '[]');
+      const issueData = {
+        ...reportData,
+        category: reportData.type,
+        zone: reportData.address || 'Unknown',
+        priority: reportData.severity
+      };
+      issues.push(issueData);
+      localStorage.setItem('issues', JSON.stringify(issues));
+      
+      if (navigator.onLine) {
+        fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(reportData)
+        }).catch(() => console.log('Offline - will sync later'));
+      }
+      
+      alert('Hazard report submitted successfully!');
+      window.location.href = 'issues.html';
+    });
+
+    // Initialize
+    window.onload = () => {
+      initMap();
+      checkOnlineStatus();
+      setInterval(checkOnlineStatus, 5000);
+    };
+
+    window.addEventListener('online', () => {
+      // Sync offline reports when back online
+      const reports = JSON.parse(localStorage.getItem('hazardReports') || '[]');
+      const offlineReports = reports.filter(r => !r.online);
+      
+      offlineReports.forEach(report => {
+        fetch('/api/reports', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({...report, online: true})
+        }).then(() => {
+          report.online = true;
+          localStorage.setItem('hazardReports', JSON.stringify(reports));
+        });
+      });
+    });
+  </script>
+</body>
+</html>

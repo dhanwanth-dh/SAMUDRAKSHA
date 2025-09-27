@@ -1,0 +1,1069 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ocean Hazard Monitor</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+    }
+
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 40px;
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      color: #fff;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .navbar .logo { 
+      font-size: 24px; 
+      font-weight: bold;
+      text-shadow: 0 0 20px rgba(255,255,255,0.5);
+    }
+    .navbar ul {
+      list-style: none;
+      display: flex;
+      gap: 30px;
+      margin: 0;
+      padding: 0;
+    }
+    .navbar ul li a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .navbar ul li a:hover {
+      color: #ffd700;
+      transform: translateY(-2px);
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      padding: 30px;
+      max-width: 1500px;
+      margin: 0 auto;
+    }
+
+    .alert-item {
+      transition: all 0.3s;
+    }
+    .alert-item:hover {
+      transform: translateY(-3px) scale(1.02);
+    }
+
+    .card {
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 
+        20px 20px 60px #0d1b2a,
+        -20px -20px 60px #1f2937;
+      color: white;
+      transition: all 0.3s;
+    }
+    .card:hover {
+      transform: translateY(-8px) scale(1.02);
+      box-shadow: 
+        0 20px 40px rgba(13,27,42,0.4),
+        0 0 20px rgba(102,126,234,0.2);
+    }
+
+    .full-width {
+      grid-column: 1 / -1;
+    }
+
+    h2 {
+      background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 22px;
+      margin-bottom: 20px;
+    }
+
+    #oceanMap {
+      height: 450px;
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+
+    .sensor-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 20px;
+    }
+
+    .sensor-card {
+      background: linear-gradient(145deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      border: 2px solid rgba(102,126,234,0.2);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .sensor-card:hover {
+      transform: translateY(-5px) scale(1.05);
+      border-color: #667eea;
+      box-shadow: 0 10px 25px rgba(102,126,234,0.3);
+    }
+
+    .sensor-value {
+      font-size: 28px;
+      font-weight: bold;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 10px;
+    }
+
+    .status-indicator {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 10px;
+      box-shadow: 0 0 10px currentColor;
+    }
+    .online { background: #4caf50; }
+    .offline { background: #f44336; }
+
+    .ai-chat {
+      height: 400px;
+      border: 2px solid rgba(102,126,234,0.3);
+      border-radius: 20px;
+      overflow-y: auto;
+      padding: 20px;
+      background: linear-gradient(145deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      backdrop-filter: blur(15px);
+      box-shadow: inset 0 0 20px rgba(102,126,234,0.1);
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 12px;
+      margin-top: 15px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 15px;
+      border: 2px solid rgba(102,126,234,0.3);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .chat-input input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 20px rgba(102,126,234,0.3);
+    }
+
+    .chat-input button {
+      padding: 15px 25px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 8px 25px rgba(102,126,234,0.4);
+      transition: all 0.4s;
+    }
+    .chat-input button:hover {
+      transform: translateY(-4px) scale(1.08);
+      box-shadow: 0 15px 40px rgba(102,126,234,0.6);
+    }
+
+    .quick-btn {
+      background: linear-gradient(45deg, rgba(102,126,234,0.2), rgba(118,75,162,0.2));
+      border: 1px solid rgba(102,126,234,0.4);
+      color: white;
+      padding: 8px 12px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.3s;
+      font-weight: 500;
+    }
+    .quick-btn:hover {
+      background: linear-gradient(45deg, rgba(102,126,234,0.4), rgba(118,75,162,0.4));
+      transform: translateY(-2px) scale(1.05);
+      box-shadow: 0 8px 20px rgba(102,126,234,0.3);
+    }
+  </style>
+</head>
+<body>
+  <div class="navbar">
+    <div class="logo">🌊 Ocean Monitor AI</div>
+    <ul>
+      <li><a href="home.html">🏠 Home</a></li>
+      <li><a href="enhanced-report.html">📝 Report Hazard</a></li>
+      <li><a href="crowd-dashboard.html">📊 Live Dashboard</a></li>
+      <li><a href="ocean-monitor.html">🌊 Ocean Monitor</a></li>
+      <li><a href="issues.html">📋 All Reports</a></li>
+    </ul>
+    <button onclick="logout()" style="background:#fff;color:#2a5298;padding:6px 12px;border:none;border-radius:6px;cursor:pointer;">🚪 Logout</button>
+  </div>
+
+  <div class="container">
+    <div class="card full-width">
+      <h2>🗺️ Real-time Ocean Hazard Map</h2>
+      <div id="oceanMap"></div>
+    </div>
+
+    <div class="card">
+      <h2>🤖 AI Ocean Assistant</h2>
+      <div id="aiChat" class="ai-chat">
+        <div style="color: #a0aec0; font-style: italic; padding: 15px; background: linear-gradient(45deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1)); border-radius: 12px; border: 1px solid rgba(102,126,234,0.2);">🤖 **AI Ocean Assistant Online** 👋<br><br>I'm actively monitoring live ocean conditions and can provide:<br>• Real-time weather analysis 🌤️<br>• Risk assessments ⚡<br>• Safety guidance 🛡️<br>• Emergency assistance 🚨<br><br>💬 Use the buttons below or ask me anything!</div>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="chatInput" placeholder="💬 Ask about ocean conditions...">
+        <button onclick="sendMessage()">📤 Send</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>⚠️ Active Hazard Alerts</h2>
+      <div id="hazardAlerts">
+        <div class="alert-item" style="background: linear-gradient(45deg, #ff6b35, #f7931e); padding: 15px; border-radius: 12px; margin-bottom: 15px; color: white; box-shadow: 0 8px 25px rgba(255,107,53,0.3);">
+          <strong>🚨 Medium Risk:</strong> Dangerous wave heights: 3.8m 🌊
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Live Sensor Data</h2>
+      <div class="sensor-grid">
+        <div class="sensor-card">
+          <div class="sensor-value" id="waveHeight">1.9m</div>
+          <div>🌊 Wave Height</div>
+          <div><span class="status-indicator online"></span>🟢 Online</div>
+        </div>
+        <div class="sensor-card">
+          <div class="sensor-value" id="windSpeed">40 km/h</div>
+          <div>💨 Wind Speed</div>
+          <div><span class="status-indicator online"></span>🟢 Online</div>
+        </div>
+        <div class="sensor-card">
+          <div class="sensor-value" id="waterTemp">27°C</div>
+          <div>🌡️ Water Temp</div>
+          <div><span class="status-indicator online"></span>🟢 Online</div>
+        </div>
+        <div class="sensor-card">
+          <div class="sensor-value" id="visibility">5.8km</div>
+          <div>👁️ Visibility</div>
+          <div><span class="status-indicator offline"></span>🔴 Offline</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>🔮 AI Risk Predictions</h2>
+      <div style="background: linear-gradient(145deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1)); padding: 20px; border-radius: 15px; border: 2px solid rgba(102,126,234,0.2);">
+        <h3 style="color: #667eea; margin-bottom: 15px;">Next 24 Hours Forecast</h3>
+        <div style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,107,53,0.2); border-radius: 8px; border-left: 4px solid #ff6b35;">
+            <span>⚠️ Storm Risk:</span>
+            <strong style="color: #ff6b35;">85%</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(255,193,7,0.2); border-radius: 8px; border-left: 4px solid #ffc107;">
+            <span>🌊 High Waves:</span>
+            <strong style="color: #ffc107;">70%</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px; background: rgba(76,175,80,0.2); border-radius: 8px; border-left: 4px solid #4caf50;">
+            <span>☀️ Clear Weather:</span>
+            <strong style="color: #4caf50;">15%</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    // Initialize Ocean Map
+    const map = L.map('oceanMap').setView([20.5937, 78.9629], 5);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Map ready - no pre-existing hazards
+
+    // Enhanced Interactive AI Chat System
+    class AgenticChatbot {
+      constructor() {
+        this.context = {
+          reports: JSON.parse(localStorage.getItem('hazardReports') || '[]'),
+          conversationHistory: [],
+          activeTools: ['weather', 'reports', 'analysis', 'sensors', 'predictions'],
+          userPreferences: JSON.parse(localStorage.getItem('chatPreferences') || '{}'),
+          currentLocation: null,
+          alertThresholds: { wind: 50, waves: 3.0, visibility: 2.0 }
+        };
+        this.isTyping = false;
+        this.initQuickActions();
+        this.initLocationTracking();
+        this.loadPersonalization();
+      }
+
+      initQuickActions() {
+        const quickActions = document.createElement('div');
+        quickActions.innerHTML = `
+          <div style="display: flex; gap: 8px; margin: 15px 0; flex-wrap: wrap;">
+            <button onclick="agenticBot.processMessage('Current weather conditions')" class="quick-btn">🌤️ Weather</button>
+            <button onclick="agenticBot.processMessage('Show sensor data')" class="quick-btn">📊 Sensors</button>
+            <button onclick="agenticBot.processMessage('Risk assessment for my location')" class="quick-btn">⚠️ My Risk</button>
+            <button onclick="agenticBot.processMessage('Is it safe to go fishing now?')" class="quick-btn">🎣 Fishing</button>
+            <button onclick="agenticBot.processMessage('When will conditions improve?')" class="quick-btn">⏰ Timeline</button>
+            <button onclick="agenticBot.processMessage('Emergency help')" class="quick-btn">🚨 Emergency</button>
+          </div>
+        `;
+        document.getElementById('aiChat').appendChild(quickActions);
+      }
+
+      initLocationTracking() {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              this.context.currentLocation = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+              };
+            },
+            () => {
+              this.context.currentLocation = { lat: 20.5937, lng: 78.9629 }; // Default to India center
+            }
+          );
+        }
+      }
+
+      loadPersonalization() {
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        this.context.userName = user.name || 'there';
+        this.context.userActivity = user.activity || 'general';
+      }
+
+      async processMessage(message) {
+        if (this.isTyping) return;
+        this.isTyping = true;
+        
+        this.addMessage('user', message);
+        document.getElementById('chatInput').value = '';
+        this.showTypingIndicator();
+        
+        await new Promise(resolve => setTimeout(resolve, 800));
+        const response = await this.generateResponse(message);
+        this.hideTypingIndicator();
+        this.addMessage('ai', response.text, response.actions);
+        this.isTyping = false;
+      }
+
+      async generateResponse(message) {
+        const intent = this.analyzeIntent(message);
+        const context = this.gatherContext();
+        this.context.conversationHistory.push({user: message, timestamp: Date.now(), intent: intent.type});
+        
+        // Check for follow-up questions
+        if (this.isFollowUp(message)) {
+          return this.handleFollowUp(message, context);
+        }
+        
+        // Handle specific activity-based queries
+        if (intent.activity) {
+          return this.handleActivityQuery(message, intent.activity, context);
+        }
+        
+        switch (intent.type) {
+          case 'weather': return this.handleWeather(context, intent.details);
+          case 'reports': return this.analyzeReports(context);
+          case 'safety': return this.provideSafety(context, intent.details);
+          case 'emergency': return this.handleEmergency();
+          case 'sensors': return this.handleSensors(context);
+          case 'prediction': return this.handlePredictions(context, intent.timeframe);
+          case 'location': return this.handleLocationQuery(message, context);
+          case 'comparison': return this.handleComparison(message, context);
+          default: return this.generateContextual(message, context);
+        }
+      }
+
+      analyzeIntent(message) {
+        const msg = message.toLowerCase();
+        
+        // Activity-specific intents
+        const activities = {
+          fishing: ['fish', 'fishing', 'angling', 'catch'],
+          swimming: ['swim', 'swimming', 'beach', 'diving'],
+          boating: ['boat', 'sailing', 'vessel', 'ship', 'yacht'],
+          surfing: ['surf', 'surfing', 'waves for surfing']
+        };
+        
+        for (const [activity, keywords] of Object.entries(activities)) {
+          if (keywords.some(keyword => msg.includes(keyword))) {
+            return { type: 'safety', activity, details: this.extractActivityDetails(msg, activity) };
+          }
+        }
+        
+        // Time-based intents
+        const timeframes = {
+          'now': ['now', 'current', 'right now', 'at the moment'],
+          'today': ['today', 'this day'],
+          'tomorrow': ['tomorrow', 'next day'],
+          'week': ['week', 'weekly', '7 days']
+        };
+        
+        let timeframe = 'now';
+        for (const [time, keywords] of Object.entries(timeframes)) {
+          if (keywords.some(keyword => msg.includes(keyword))) {
+            timeframe = time;
+            break;
+          }
+        }
+        
+        // Location-based intents
+        if (msg.includes('here') || msg.includes('my location') || msg.includes('where i am')) {
+          return { type: 'location', timeframe };
+        }
+        
+        // Comparison intents
+        if (msg.includes('better') || msg.includes('worse') || msg.includes('compare') || msg.includes('vs')) {
+          return { type: 'comparison', timeframe };
+        }
+        
+        // Core intents with enhanced details
+        if (msg.includes('weather') || msg.includes('storm') || msg.includes('wind') || msg.includes('temperature')) {
+          return { type: 'weather', timeframe, details: this.extractWeatherDetails(msg) };
+        }
+        if (msg.includes('sensor') || msg.includes('data') || msg.includes('reading')) return { type: 'sensors' };
+        if (msg.includes('report') || msg.includes('hazard') || msg.includes('alert')) return { type: 'reports' };
+        if (msg.includes('safe') || msg.includes('danger') || msg.includes('risk')) {
+          return { type: 'safety', timeframe, details: this.extractSafetyDetails(msg) };
+        }
+        if (msg.includes('predict') || msg.includes('forecast') || msg.includes('future') || msg.includes('when')) {
+          return { type: 'prediction', timeframe };
+        }
+        if (msg.includes('emergency') || msg.includes('help') || msg.includes('112')) return { type: 'emergency' };
+        
+        return { type: 'contextual', timeframe };
+      }
+      
+      extractActivityDetails(msg, activity) {
+        const details = { activity };
+        if (msg.includes('safe')) details.concern = 'safety';
+        if (msg.includes('when')) details.timing = true;
+        if (msg.includes('where')) details.location = true;
+        return details;
+      }
+      
+      extractWeatherDetails(msg) {
+        const details = {};
+        if (msg.includes('wind')) details.focus = 'wind';
+        if (msg.includes('wave')) details.focus = 'waves';
+        if (msg.includes('temperature') || msg.includes('temp')) details.focus = 'temperature';
+        if (msg.includes('visibility')) details.focus = 'visibility';
+        return details;
+      }
+      
+      extractSafetyDetails(msg) {
+        const details = {};
+        if (msg.includes('go out') || msg.includes('leave')) details.action = 'going_out';
+        if (msg.includes('stay') || msg.includes('remain')) details.action = 'staying';
+        return details;
+      }
+
+      gatherContext() {
+        const reports = this.context.reports;
+        return {
+          totalReports: reports.length,
+          criticalReports: reports.filter(r => r.severity === 'critical').length,
+          recentReports: reports.slice(-5)
+        };
+      }
+
+      handleWeather(context, details = {}) {
+        const temp = document.getElementById('waterTemp').textContent;
+        const wind = document.getElementById('windSpeed').textContent;
+        const waves = document.getElementById('waveHeight').textContent;
+        const visibility = document.getElementById('visibility').textContent;
+        
+        const windNum = parseInt(wind);
+        const waveNum = parseFloat(waves);
+        const tempNum = parseInt(temp);
+        
+        let condition = '✅ Safe';
+        let alert = '';
+        let personalizedAdvice = '';
+        
+        if (windNum > 50 || waveNum > 3.0) {
+          condition = '⚠️ Caution';
+          alert = '\\n\\n🚨 **Alert:** High winds or waves detected!';
+        }
+        
+        // Personalized advice based on focus
+        if (details.focus) {
+          switch (details.focus) {
+            case 'wind':
+              personalizedAdvice = `\\n\\n💨 **Wind Analysis:** Current ${wind} is ${windNum > 40 ? 'strong - avoid small boats' : 'moderate - suitable for most activities'}`;
+              break;
+            case 'waves':
+              personalizedAdvice = `\\n\\n🌊 **Wave Analysis:** ${waves} waves are ${waveNum > 2.5 ? 'rough - experienced swimmers only' : 'manageable for most water activities'}`;
+              break;
+            case 'temperature':
+              personalizedAdvice = `\\n\\n🌡️ **Temperature Analysis:** ${temp} water is ${tempNum > 25 ? 'warm and comfortable' : tempNum > 20 ? 'cool but suitable' : 'cold - wetsuit recommended'}`;
+              break;
+          }
+        }
+        
+        // Location-specific advice
+        const locationAdvice = this.context.currentLocation ? 
+          `\\n\\n📍 **For your location:** Conditions ${this.getLocationRisk()} average for coastal areas` : '';
+        
+        return {
+          text: `🌤️ **Live Weather Data:**\\n\\n🌡️ **Water Temp:** ${temp}\\n💨 **Wind Speed:** ${wind}\\n🌊 **Wave Height:** ${waves}\\n👁️ **Visibility:** ${visibility}\\n\\n**Status:** ${condition}${alert}${personalizedAdvice}${locationAdvice}`,
+          actions: ['get_forecast', 'view_map', 'safety_tips', 'hourly_forecast']
+        };
+      }
+      
+      getLocationRisk() {
+        // Simulate location-based risk assessment
+        return Math.random() > 0.5 ? 'are above' : 'are below';
+      }
+
+      analyzeReports(context) {
+        const riskLevel = context.criticalReports > 3 ? 'HIGH RISK 🔴' : context.criticalReports > 0 ? 'MODERATE 🟡' : 'LOW RISK 🟢';
+        const trend = context.totalReports > 10 ? '📈 Increasing' : '📉 Stable';
+        
+        return {
+          text: `📊 **Real-time Hazard Analysis:**\\n\\n📋 **Total Reports:** ${context.totalReports}\\n🚨 **Critical Alerts:** ${context.criticalReports}\\n📊 **Risk Level:** ${riskLevel}\\n📈 **Trend:** ${trend}\\n\\n${context.criticalReports > 0 ? '⚠️ Monitor conditions closely' : '✅ Conditions stable'}`,
+          actions: ['view_map', 'get_details', 'set_alerts']
+        };
+      }
+
+      provideSafety(context, details = {}) {
+        const windSpeed = parseInt(document.getElementById('windSpeed').textContent);
+        const waveHeight = parseFloat(document.getElementById('waveHeight').textContent);
+        const temp = parseInt(document.getElementById('waterTemp').textContent);
+        
+        let recommendations = [];
+        let activitySpecific = '';
+        
+        // Activity-specific safety advice
+        if (details.activity) {
+          activitySpecific = this.getActivitySafety(details.activity, windSpeed, waveHeight, temp);
+        }
+        
+        // General recommendations
+        if (windSpeed > 40) recommendations.push('🌪️ Avoid water activities due to high winds');
+        if (waveHeight > 2.5) recommendations.push('🌊 Stay away from shoreline - dangerous waves');
+        if (context.criticalReports > 0) recommendations.push('⚠️ Multiple hazards reported in area');
+        if (temp < 18) recommendations.push('🥶 Cold water - hypothermia risk');
+        
+        // Personalized recommendations based on user action
+        if (details.action === 'going_out') {
+          recommendations.push('📱 Keep phone charged and waterproof');
+          recommendations.push('👥 Inform someone of your plans');
+        }
+        
+        const safetyLevel = recommendations.length === 0 ? '🟢 SAFE' : recommendations.length < 2 ? '🟡 CAUTION' : '🔴 DANGER';
+        
+        return {
+          text: `🛡️ **Live Safety Assessment:**\\n\\n**Current Status:** ${safetyLevel}\\n\\n${activitySpecific}**General Recommendations:**\\n${recommendations.length > 0 ? recommendations.map(r => `• ${r}`).join('\\n') : '• ✅ Normal activities permitted with standard precautions'}\\n\\n🚨 **Emergency:** Call 112 for immediate assistance`,
+          actions: ['emergency_contacts', 'activity_tips', 'weather_alerts', 'safety_checklist']
+        };
+      }
+      
+      getActivitySafety(activity, wind, waves, temp) {
+        const advice = {
+          fishing: {
+            safe: '🎣 **Fishing Conditions:** Excellent - calm waters ideal for fishing',
+            caution: '🎣 **Fishing Conditions:** Use caution - stay close to shore',
+            danger: '🎣 **Fishing Conditions:** NOT RECOMMENDED - return to harbor immediately'
+          },
+          swimming: {
+            safe: '🏊 **Swimming Conditions:** Safe - enjoy the water with normal precautions',
+            caution: '🏊 **Swimming Conditions:** Swim near lifeguards only - strong currents possible',
+            danger: '🏊 **Swimming Conditions:** DANGEROUS - no swimming advised'
+          },
+          boating: {
+            safe: '⛵ **Boating Conditions:** Good - pleasant conditions for all vessel sizes',
+            caution: '⛵ **Boating Conditions:** Small craft advisory - larger boats recommended',
+            danger: '⛵ **Boating Conditions:** HAZARDOUS - all vessels return to port'
+          },
+          surfing: {
+            safe: '🏄 **Surfing Conditions:** Moderate waves - good for beginners',
+            caution: '🏄 **Surfing Conditions:** Challenging - experienced surfers only',
+            danger: '🏄 **Surfing Conditions:** EXTREME - professional level only'
+          }
+        };
+        
+        let level = 'safe';
+        if (wind > 50 || waves > 3.5 || temp < 15) level = 'danger';
+        else if (wind > 35 || waves > 2.5 || temp < 20) level = 'caution';
+        
+        return advice[activity] ? advice[activity][level] + '\\n\\n' : '';
+      }
+
+      handleEmergency() {
+        return {
+          text: `🚨 **EMERGENCY MODE**\\n\\n**Immediate Actions:**\\n1. Call 112\\n2. Report location\\n3. Follow evacuation procedures\\n\\n**Stay calm and follow instructions**`,
+          actions: ['call_112', 'report_location']
+        };
+      }
+
+      isFollowUp(message) {
+        const followUpWords = ['why', 'how', 'what about', 'tell me more', 'explain', 'details', 'more info'];
+        return followUpWords.some(word => message.toLowerCase().includes(word)) && this.context.conversationHistory.length > 0;
+      }
+
+      handleFollowUp(message, context) {
+        const lastTopic = this.getLastTopic();
+        const msg = message.toLowerCase();
+        
+        if (msg.includes('why') && lastTopic === 'weather') {
+          return {
+            text: `🔍 **Weather Analysis Details:**\\n\\nCurrent conditions are based on:\\n• Live sensor readings from coastal stations\\n• Wind pattern analysis\\n• Wave height measurements\\n• Temperature monitoring\\n\\n📊 These factors determine safety levels and risk assessments.`,
+            actions: ['view_sensors', 'risk_factors']
+          };
+        }
+        
+        if (msg.includes('more') || msg.includes('details')) {
+          return this.getDetailedInfo(lastTopic, context);
+        }
+        
+        return this.generateContextual(message, context);
+      }
+
+      getLastTopic() {
+        if (this.context.conversationHistory.length === 0) return 'general';
+        const lastMsg = this.context.conversationHistory[this.context.conversationHistory.length - 1].user.toLowerCase();
+        if (lastMsg.includes('weather')) return 'weather';
+        if (lastMsg.includes('safety')) return 'safety';
+        if (lastMsg.includes('sensor')) return 'sensors';
+        return 'general';
+      }
+
+      handleSensors(context) {
+        const sensors = {
+          wave: document.getElementById('waveHeight').textContent,
+          wind: document.getElementById('windSpeed').textContent,
+          temp: document.getElementById('waterTemp').textContent,
+          visibility: document.getElementById('visibility').textContent
+        };
+        
+        return {
+          text: `📊 **Live Sensor Network:**\\n\\n🌊 **Wave Height:** ${sensors.wave} ${parseFloat(sensors.wave) > 2.5 ? '⚠️ High' : '✅ Normal'}\\n💨 **Wind Speed:** ${sensors.wind} ${parseInt(sensors.wind) > 40 ? '⚠️ Strong' : '✅ Moderate'}\\n🌡️ **Water Temp:** ${sensors.temp} ✅ Normal\\n👁️ **Visibility:** ${sensors.visibility} ${sensors.visibility.includes('Offline') ? '🔴 Offline' : '✅ Good'}\\n\\n📡 **Data updated every 30 seconds**`,
+          actions: ['sensor_history', 'calibration_info', 'alert_thresholds']
+        };
+      }
+
+      handlePredictions(context, timeframe = 'now') {
+        const windSpeed = parseInt(document.getElementById('windSpeed').textContent);
+        const waveHeight = parseFloat(document.getElementById('waveHeight').textContent);
+        
+        const predictions = this.generateTimeframePredictions(timeframe, windSpeed, waveHeight);
+        
+        return {
+          text: `🔮 **AI Predictions (${predictions.period}):**\\n\\n📈 **Trend Analysis:** ${predictions.trend}\\n🌊 **Sea Conditions:** ${predictions.forecast}\\n⚡ **Risk Level:** ${predictions.risk}\\n\\n${predictions.specific}\\n\\n🎯 **Confidence:** ${predictions.confidence}% based on current patterns\\n⏰ **Next Update:** ${new Date(Date.now() + 30*60000).toLocaleTimeString()}`,
+          actions: ['detailed_forecast', 'risk_timeline', 'weather_map', 'set_alerts']
+        };
+      }
+      
+      generateTimeframePredictions(timeframe, wind, waves) {
+        const base = {
+          now: { period: 'Next 2 Hours', confidence: 95 },
+          today: { period: 'Rest of Today', confidence: 85 },
+          tomorrow: { period: 'Tomorrow', confidence: 75 },
+          week: { period: 'Next 7 Days', confidence: 65 }
+        };
+        
+        const prediction = base[timeframe] || base.now;
+        
+        // Generate realistic predictions
+        const trend = wind > 45 ? 'deteriorating conditions' : wind < 25 ? 'improving conditions' : 'stable conditions';
+        const forecast = waves > 2.8 ? 'rough seas continuing' : 'calmer waters expected';
+        const risk = wind > 50 || waves > 3 ? 'HIGH 🔴' : wind > 35 || waves > 2 ? 'MODERATE 🟡' : 'LOW 🟢';
+        
+        let specific = '';
+        switch (timeframe) {
+          case 'today':
+            specific = '🌅 **Best time:** Early morning (6-9 AM)\\n🌆 **Avoid:** Late afternoon (4-7 PM)';
+            break;
+          case 'tomorrow':
+            specific = '🌤️ **Expected:** Winds decreasing to 25-35 km/h\\n🌊 **Waves:** Reducing to 1.5-2.5m';
+            break;
+          case 'week':
+            specific = '📊 **Pattern:** 3 good days, 2 moderate, 2 rough\\n🎯 **Best days:** Tuesday, Thursday, Saturday';
+            break;
+          default:
+            specific = '⏱️ **Immediate:** Conditions stable for next 2 hours';
+        }
+        
+        return { ...prediction, trend, forecast, risk, specific };
+      }
+
+      handleActivityQuery(message, activity, context) {
+        const windSpeed = parseInt(document.getElementById('windSpeed').textContent);
+        const waveHeight = parseFloat(document.getElementById('waveHeight').textContent);
+        const temp = parseInt(document.getElementById('waterTemp').textContent);
+        
+        const safetyLevel = this.assessActivitySafety(activity, windSpeed, waveHeight, temp);
+        const timing = this.getBestTiming(activity, windSpeed, waveHeight);
+        const equipment = this.getEquipmentAdvice(activity, windSpeed, waveHeight, temp);
+        
+        return {
+          text: `🎯 **${activity.charAt(0).toUpperCase() + activity.slice(1)} Conditions:**\\n\\n${safetyLevel.status}\\n\\n⏰ **Best Timing:** ${timing}\\n🎒 **Equipment:** ${equipment}\\n\\n${safetyLevel.advice}`,
+          actions: ['detailed_conditions', 'safety_checklist', 'weather_alerts', 'alternative_locations']
+        };
+      }
+      
+      assessActivitySafety(activity, wind, waves, temp) {
+        const thresholds = {
+          fishing: { wind: 40, waves: 2.5, temp: 15 },
+          swimming: { wind: 35, waves: 2.0, temp: 18 },
+          boating: { wind: 45, waves: 3.0, temp: 10 },
+          surfing: { wind: 50, waves: 1.0, temp: 16 }
+        };
+        
+        const limits = thresholds[activity] || thresholds.fishing;
+        
+        if (wind > limits.wind || waves > limits.waves || temp < limits.temp) {
+          return {
+            status: '🔴 **NOT RECOMMENDED** - Conditions exceed safe limits',
+            advice: '⚠️ **Wait for conditions to improve** - Check back in 2-3 hours'
+          };
+        } else if (wind > limits.wind * 0.8 || waves > limits.waves * 0.8) {
+          return {
+            status: '🟡 **CAUTION ADVISED** - Borderline conditions',
+            advice: '🛡️ **Extra precautions needed** - Stay close to shore/harbor'
+          };
+        } else {
+          return {
+            status: '🟢 **GOOD CONDITIONS** - Safe for activity',
+            advice: '✅ **Enjoy safely** - Standard precautions apply'
+          };
+        }
+      }
+      
+      getBestTiming(activity, wind, waves) {
+        const hour = new Date().getHours();
+        if (hour < 10) return 'Perfect morning conditions - continue now!';
+        if (hour < 16) return 'Good daytime conditions - monitor for changes';
+        return 'Evening conditions - consider early morning tomorrow';
+      }
+      
+      getEquipmentAdvice(activity, wind, waves, temp) {
+        const advice = [];
+        if (temp < 20) advice.push('wetsuit');
+        if (wind > 30) advice.push('wind protection');
+        if (waves > 2) advice.push('safety gear');
+        advice.push('communication device');
+        
+        return advice.length > 0 ? advice.join(', ') : 'standard equipment';
+      }
+
+      handleLocationQuery(message, context) {
+        const location = this.context.currentLocation || { lat: 20.5937, lng: 78.9629 };
+        const localRisk = this.calculateLocalRisk(location);
+        
+        return {
+          text: `📍 **Your Location Analysis:**\\n\\n🌊 **Local Conditions:** ${localRisk.description}\\n⚡ **Risk Level:** ${localRisk.level}\\n🎯 **Recommendation:** ${localRisk.advice}\\n\\n📊 **Compared to regional average:** ${localRisk.comparison}`,
+          actions: ['nearby_conditions', 'alternative_locations', 'local_alerts']
+        };
+      }
+      
+      calculateLocalRisk(location) {
+        // Simulate location-based risk calculation
+        const riskScore = Math.random();
+        if (riskScore > 0.7) {
+          return {
+            level: 'HIGH 🔴',
+            description: 'Elevated risk in your immediate area',
+            advice: 'Avoid water activities',
+            comparison: 'Above average risk'
+          };
+        } else if (riskScore > 0.4) {
+          return {
+            level: 'MODERATE 🟡',
+            description: 'Moderate conditions with some concerns',
+            advice: 'Exercise caution',
+            comparison: 'Similar to regional average'
+          };
+        } else {
+          return {
+            level: 'LOW 🟢',
+            description: 'Favorable conditions in your area',
+            advice: 'Normal activities permitted',
+            comparison: 'Better than regional average'
+          };
+        }
+      }
+      
+      handleComparison(message, context) {
+        const msg = message.toLowerCase();
+        let comparison = '';
+        
+        if (msg.includes('yesterday') || msg.includes('before')) {
+          comparison = this.compareWithPrevious();
+        } else if (msg.includes('tomorrow') || msg.includes('later')) {
+          comparison = this.compareWithFuture();
+        } else {
+          comparison = this.compareLocations();
+        }
+        
+        return {
+          text: `📊 **Comparison Analysis:**\\n\\n${comparison}`,
+          actions: ['trend_analysis', 'historical_data', 'forecast_comparison']
+        };
+      }
+      
+      compareWithPrevious() {
+        return '📈 **vs Yesterday:**\\n• Wind: 15% higher\\n• Waves: Similar levels\\n• Temperature: 2°C warmer\\n\\n**Trend:** Conditions worsening';
+      }
+      
+      compareWithFuture() {
+        return '🔮 **vs Tomorrow:**\\n• Wind: Expected to decrease 20%\\n• Waves: Should calm to 1.5-2m\\n• Temperature: Stable\\n\\n**Outlook:** Improving conditions';
+      }
+      
+      compareLocations() {
+        return '🗺️ **Regional Comparison:**\\n• Your area: Moderate conditions\\n• 50km North: Calmer waters\\n• 50km South: Rougher seas\\n\\n**Best nearby:** Northern coastal areas';
+      }
+
+      generateContextual(message, context) {
+        const msg = message.toLowerCase();
+        const userName = this.context.userName;
+        
+        // Respond to specific questions
+        if (msg.includes('how are you') || msg.includes('hello') || msg.includes('hi')) {
+          return {
+            text: `👋 **Hello!** I'm doing great - actively monitoring ocean conditions!\\n\\n🌊 Current status: All systems operational\\n📡 Sensors: Online and collecting data\\n🤖 AI: Ready to assist with any questions\\n\\n💬 **What would you like to know about ocean conditions?**`,
+            actions: ['current_conditions', 'safety_check', 'weather_update']
+          };
+        }
+        
+        if (msg.includes('thank') || msg.includes('thanks')) {
+          return {
+            text: `😊 **You're welcome!** Happy to help keep you safe!\\n\\n🛡️ Remember: I'm here 24/7 for ocean monitoring\\n📱 Feel free to ask anything about conditions\\n🚨 For emergencies, always call 112 first\\n\\n🌊 **Stay safe out there!**`,
+            actions: ['emergency_contacts', 'safety_tips']
+          };
+        }
+        
+        if (msg.includes('what can you do') || msg.includes('help me')) {
+          return {
+            text: `🤖 **I can help you with:**\\n\\n🌤️ **Weather:** Real-time conditions & forecasts\\n📊 **Data:** Live sensor readings & analysis\\n⚠️ **Alerts:** Risk assessments & warnings\\n🛡️ **Safety:** Recommendations & guidelines\\n🚨 **Emergency:** Protocols & contacts\\n\\n💬 **Just ask me naturally - like "Is it safe to go out?"**`,
+            actions: ['example_questions', 'quick_help']
+          };
+        }
+        
+        // Default contextual response
+        return {
+          text: `🤔 **I understand you're asking about:** "${message}"\\n\\n🌊 Let me help with ocean-related information:\\n\\n📊 Current conditions look ${context.criticalReports > 0 ? 'concerning with active alerts' : 'stable and safe'}\\n\\n💬 **Try asking:**\\n• "What's the weather like?"\\n• "Is it safe to go out?"\\n• "Show me the sensor data"`,
+          actions: ['weather_check', 'safety_status', 'sensor_data']
+        };
+      }
+
+      getDetailedInfo(topic, context) {
+        switch(topic) {
+          case 'weather':
+            return {
+              text: `🌤️ **Detailed Weather Analysis:**\\n\\n📊 **Measurement Methods:**\\n• Buoy sensors for wave height\\n• Anemometers for wind speed\\n• Thermistors for water temperature\\n\\n⚡ **Risk Factors:**\\n• Wind >50km/h = High risk\\n• Waves >3m = Dangerous\\n• Combined factors increase risk exponentially`,
+              actions: ['sensor_locations', 'risk_calculator']
+            };
+          default:
+            return this.generateContextual('tell me more', context);
+        }
+      }
+
+      addMessage(sender, text, actions = []) {
+        const chat = document.getElementById('aiChat');
+        const div = document.createElement('div');
+        div.className = `chat-message ${sender}-message`;
+        div.style.cssText = `
+          margin: 15px 0; padding: 15px; border-radius: 15px;
+          background: ${sender === 'user' ? 'linear-gradient(45deg, #667eea, #764ba2)' : 'linear-gradient(45deg, #16213e, #0f3460)'};
+          color: white; transform: translateY(20px); opacity: 0;
+          transition: all 0.5s ease; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+          border: 1px solid rgba(255,255,255,0.1); position: relative;
+        `;
+        
+        const timestamp = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        div.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <strong>${sender === 'user' ? '👤 You' : '🤖 AI Ocean Assistant'}</strong>
+            <span style="font-size: 11px; opacity: 0.7;">${timestamp}</span>
+          </div>
+          <div style="line-height: 1.6; font-size: 14px;">${text.replace(/\\n/g, '<br>')}</div>
+          ${actions.length > 0 ? `
+            <div style="margin-top: 15px; display: flex; gap: 8px; flex-wrap: wrap;">
+              ${actions.map(action => `
+                <button onclick="handleAction('${action}')" class="action-btn" style="
+                  background: linear-gradient(45deg, rgba(102,126,234,0.3), rgba(118,75,162,0.3));
+                  border: 1px solid rgba(102,126,234,0.5); color: white;
+                  padding: 8px 14px; border-radius: 20px; cursor: pointer;
+                  font-size: 12px; transition: all 0.3s; font-weight: 500;
+                " onmouseover="this.style.background='linear-gradient(45deg, rgba(102,126,234,0.5), rgba(118,75,162,0.5))'; this.style.transform='translateY(-2px) scale(1.05)'"
+                   onmouseout="this.style.background='linear-gradient(45deg, rgba(102,126,234,0.3), rgba(118,75,162,0.3))'; this.style.transform='translateY(0) scale(1)'">
+                  ${this.getActionLabel(action)}
+                </button>
+              `).join('')}
+            </div>
+          ` : ''}
+        `;
+        
+        chat.appendChild(div);
+        setTimeout(() => {
+          div.style.transform = 'translateY(0)';
+          div.style.opacity = '1';
+        }, 100);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      showTypingIndicator() {
+        const chat = document.getElementById('aiChat');
+        const indicator = document.createElement('div');
+        indicator.id = 'typing';
+        indicator.style.cssText = `
+          margin: 15px 0; padding: 15px; border-radius: 15px;
+          background: linear-gradient(45deg, #16213e, #0f3460);
+          color: #a0aec0; font-style: italic;
+          animation: pulse 1.5s infinite;
+        `;
+        indicator.innerHTML = '🤖 AI Agent analyzing data...';
+        chat.appendChild(indicator);
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      hideTypingIndicator() {
+        const indicator = document.getElementById('typing');
+        if (indicator) indicator.remove();
+      }
+
+      getActionLabel(action) {
+        const labels = {
+          'get_forecast': '🌤️ 24h Forecast',
+          'hourly_forecast': '⏰ Hourly',
+          'view_alerts': '⚠️ Active Alerts',
+          'view_map': '🗺️ Hazard Map',
+          'get_details': '📊 Full Report',
+          'emergency_contacts': '📞 Emergency',
+          'evacuation_routes': '🚪 Evacuation',
+          'call_112': '🚨 Call 112',
+          'report_location': '📍 My Location',
+          'current_conditions': '🌊 Live Data',
+          'risk_analysis': '⚡ Risk Level',
+          'safety_check': '🛡️ Safety Status',
+          'weather_alerts': '🌪️ Weather Alerts',
+          'set_alerts': '🔔 Set Alerts',
+          'safety_tips': '💡 Safety Tips',
+          'activity_tips': '🎯 Activity Guide',
+          'safety_checklist': '✅ Checklist',
+          'detailed_conditions': '📋 Details',
+          'alternative_locations': '📍 Other Areas',
+          'nearby_conditions': '🗺️ Nearby',
+          'local_alerts': '📢 Local Alerts',
+          'trend_analysis': '📈 Trends',
+          'historical_data': '📊 History',
+          'forecast_comparison': '🔄 Compare',
+          'my_location': '📍 My Area',
+          'personalize_alerts': '⚙️ Customize',
+          'activity_advice': '🎯 Activities',
+          'location_analysis': '📍 Location',
+          'personalized_help': '🤝 Personal Help',
+          'activity_check': '🏃 Activity Status',
+          'forecast_help': '🔮 Forecast Help'
+        };
+        return labels[action] || action.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+      }
+    }
+
+    const agenticBot = new AgenticChatbot();
+
+    async function sendMessage() {
+      const input = document.getElementById('chatInput');
+      const message = input.value.trim();
+      if (!message) return;
+      await agenticBot.processMessage(message);
+    }
+
+    function handleAction(action) {
+      switch (action) {
+        case 'view_map': window.location.href = 'crowd-dashboard.html'; break;
+        case 'view_reports': window.location.href = 'issues.html'; break;
+        case 'call_112': 
+          if (confirm('🚨 Call Emergency Services (112)?')) window.open('tel:112'); 
+          break;
+        case 'current_conditions': agenticBot.processMessage('Show current sensor readings'); break;
+        case 'risk_analysis': agenticBot.processMessage('Analyze current risk level'); break;
+        case 'safety_check': agenticBot.processMessage('Safety recommendations now'); break;
+        case 'get_forecast': agenticBot.processMessage('24 hour weather forecast'); break;
+        case 'hourly_forecast': agenticBot.processMessage('Show hourly forecast for next 12 hours'); break;
+        case 'my_location': agenticBot.processMessage('Risk assessment for my location'); break;
+        case 'activity_tips': agenticBot.processMessage('Safety tips for water activities'); break;
+        case 'safety_checklist': agenticBot.processMessage('Give me a safety checklist'); break;
+        case 'detailed_conditions': agenticBot.processMessage('Detailed analysis of current conditions'); break;
+        case 'alternative_locations': agenticBot.processMessage('Show me safer nearby locations'); break;
+        case 'nearby_conditions': agenticBot.processMessage('What are conditions like nearby?'); break;
+        case 'local_alerts': agenticBot.processMessage('Any local alerts for my area?'); break;
+        case 'trend_analysis': agenticBot.processMessage('Show me weather trends'); break;
+        case 'historical_data': agenticBot.processMessage('Compare with historical data'); break;
+        case 'forecast_comparison': agenticBot.processMessage('Compare today vs tomorrow forecast'); break;
+        case 'personalize_alerts': agenticBot.processMessage('How can I customize my alerts?'); break;
+        case 'activity_advice': agenticBot.processMessage('What activities are safe right now?'); break;
+        case 'location_analysis': agenticBot.processMessage('Analyze conditions at my location'); break;
+        case 'personalized_help': agenticBot.processMessage('Give me personalized recommendations'); break;
+        case 'activity_check': agenticBot.processMessage('Check safety for my planned activity'); break;
+        case 'forecast_help': agenticBot.processMessage('Help me understand the forecast'); break;
+        case 'set_alerts':
+          agenticBot.addMessage('ai', '🔔 **Alert Settings:**\\n\\n⚙️ **Available Alerts:**\\n• Wind speed > 50 km/h\\n• Wave height > 3.0m\\n• Visibility < 2km\\n• Temperature drops\\n\\n📱 **Delivery:** Browser notifications, SMS (premium)\\n\\n💡 **Tip:** Say "Alert me when winds exceed 40 km/h" to customize', ['weather_alerts', 'emergency_contacts']);
+          break;
+        case 'emergency_contacts': 
+          agenticBot.addMessage('ai', '📞 **Emergency Contacts:**\\n\\n🚨 **Emergency Services:** 112\\n🌊 **Coast Guard:** 1554\\n🏥 **Medical Emergency:** 108\\n🚔 **Police:** 100\\n🔥 **Fire Service:** 101\\n\\n📍 **Location Services:** Share your GPS coordinates when calling\\n🆘 **Emergency App:** Download official emergency app for your region', ['call_112', 'report_location']);
+          break;
+        case 'example_questions':
+          agenticBot.addMessage('ai', '💡 **Try these natural questions:**\\n\\n🎣 **Activity-based:**\\n• "Is it safe for fishing right now?"\\n• "When is the best time to go swimming today?"\\n\\n📍 **Location-based:**\\n• "What are conditions like at my location?"\\n• "Compare my area with nearby beaches"\\n\\n⏰ **Time-based:**\\n• "Will conditions improve tomorrow?"\\n• "What\'s the forecast for this weekend?"\\n\\n🗣️ **I understand context and follow-up questions!**', ['current_conditions', 'my_location']);
+          break;
+        case 'quick_help':
+          agenticBot.addMessage('ai', '⚡ **Quick Help Guide:**\\n\\n🌊 **Ocean Status:** "Current conditions" or "How\'s the weather?"\\n📊 **Live Data:** "Show sensor data" or "What\'s the wind speed?"\\n⚠️ **Safety:** "Is it safe to [activity]?" or "Risk level"\\n🔮 **Forecast:** "Tomorrow\'s weather" or "When will it improve?"\\n🎯 **Activities:** "Fishing conditions" or "Swimming safety"\\n🚨 **Emergency:** "Emergency help" or "Call for help"\\n\\n💬 **I learn from our conversation and remember context!**', ['weather_check', 'activity_advice']);
+          break;
+        default: agenticBot.processMessage(`Tell me about ${action.replace(/_/g, ' ')}`);
+      }
+    }
+
+    // Real-time sensor updates
+    function updateSensors() {
+      document.getElementById('waveHeight').textContent = (2.0 + Math.random() * 1.5).toFixed(1) + 'm';
+      document.getElementById('windSpeed').textContent = Math.floor(40 + Math.random() * 20) + ' km/h';
+      document.getElementById('waterTemp').textContent = Math.floor(22 + Math.random() * 6) + '°C';
+    }
+
+    setInterval(updateSensors, 5000);
+
+    document.getElementById('chatInput').addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') sendMessage();
+    });
+
+    function logout() {
+      localStorage.removeItem("user");
+      window.location.href = "signin.html";
+    }
+
+    window.onload = function() {
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user) {
+        alert("Please login first!");
+        window.location.href = "signin.html";
+      }
+    }
+  </script>
+</body>
+</html>

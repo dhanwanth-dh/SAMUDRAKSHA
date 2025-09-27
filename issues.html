@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hazard Reports - Enhanced Monitoring System</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+      color: #e2e8f0;
+      min-height: 100vh;
+    }
+
+    /* Navbar */
+    nav {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      padding: 20px 40px;
+      color: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 100;
+    }
+    nav .logo {
+      font-size: 24px;
+      font-weight: bold;
+      text-shadow: 0 0 20px rgba(255,255,255,0.5);
+    }
+    nav .menu {
+      display: flex;
+      gap: 30px;
+    }
+    nav .menu a {
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    nav .menu a:hover {
+      color: #ffd700;
+      transform: translateY(-2px);
+    }
+    nav .menu a.active {
+      color: #ffd700;
+      text-shadow: 0 0 10px rgba(255,215,0,0.5);
+    }
+
+    /* Main */
+    .container {
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 30px;
+      perspective: 1000px;
+    }
+
+    h1 {
+      margin-bottom: 15px;
+      font-size: 36px;
+      background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      text-shadow: 0 0 30px rgba(102,126,234,0.5);
+    }
+
+    .search-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 30px;
+      padding: 25px;
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border-radius: 20px;
+      box-shadow: 
+        20px 20px 60px #0d1b2a,
+        -20px -20px 60px #1f2937;
+      transition: all 0.3s;
+    }
+    .search-filter:hover {
+      transform: translateY(-3px) scale(1.01);
+      box-shadow: 
+        0 12px 25px rgba(13,27,42,0.3),
+        0 0 15px rgba(102,126,234,0.15);
+    }
+
+    .search-filter input, 
+    .search-filter select {
+      padding: 12px 15px;
+      border: 2px solid rgba(102,126,234,0.3);
+      border-radius: 12px;
+      font-size: 16px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .search-filter input:focus, .search-filter select:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 20px rgba(102,126,234,0.3);
+      transform: translateY(-2px);
+    }
+    select option {
+      background: #1a1a2e;
+      color: white;
+    }
+
+    .issue-card {
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      padding: 25px;
+      margin-bottom: 20px;
+      border-radius: 20px;
+      box-shadow: 
+        20px 20px 60px #0d1b2a,
+        -20px -20px 60px #1f2937;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      transition: all 0.3s;
+      transform-style: preserve-3d;
+      position: relative;
+      overflow: hidden;
+    }
+    .issue-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+      transition: left 0.5s;
+    }
+    .issue-card:hover::before { left: 100%; }
+    .issue-card:hover {
+      transform: translateY(-5px) scale(1.02);
+      box-shadow: 
+        0 15px 35px rgba(13,27,42,0.3),
+        0 0 20px rgba(102,126,234,0.2);
+    }
+
+    .issue-info {
+      max-width: 80%;
+      position: relative;
+      z-index: 2;
+    }
+
+    .issue-title {
+      font-weight: bold;
+      font-size: 20px;
+      margin-bottom: 10px;
+      color: #fff;
+    }
+
+    .issue-desc {
+      font-size: 16px;
+      color: #cbd5e0;
+      margin-bottom: 12px;
+      line-height: 1.5;
+    }
+
+    .meta {
+      font-size: 14px;
+      color: #a0aec0;
+      margin-bottom: 5px;
+    }
+
+    .issue-status {
+      font-size: 14px;
+      font-weight: bold;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: none;
+      text-decoration: none;
+      transition: all 0.3s;
+      position: relative;
+      z-index: 2;
+    }
+    .issue-status:hover {
+      transform: scale(1.05);
+    }
+
+    /* Actions */
+    .actions {
+      margin-top: 15px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 16px;
+    }
+
+    .actions button {
+      background: rgba(102,126,234,0.1);
+      border: 2px solid rgba(102,126,234,0.3);
+      cursor: pointer;
+      font-size: 14px;
+      color: #e2e8f0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 15px;
+      border-radius: 10px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+
+    .actions button:hover {
+      background: rgba(102,126,234,0.2);
+      border-color: #667eea;
+      transform: translateY(-2px);
+      color: #fff;
+    }
+
+    /* Comments */
+    .comments {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(255,255,255,0.02);
+      border-radius: 12px;
+      font-size: 14px;
+      color: #cbd5e0;
+      backdrop-filter: blur(10px);
+    }
+
+    .comment-input {
+      margin-top: 12px;
+      display: flex;
+      gap: 10px;
+    }
+
+    .comment-input input {
+      flex: 1;
+      padding: 10px 15px;
+      border: 2px solid rgba(102,126,234,0.3);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      backdrop-filter: blur(10px);
+    }
+
+    .comment-input button {
+      padding: 10px 20px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 5px 15px rgba(102,126,234,0.3);
+      transition: all 0.3s;
+    }
+    .comment-input button:hover {
+      transform: translateY(-2px) scale(1.05);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav>
+    <div class="logo">🚨 Hazard Monitor</div>
+    <div class="menu">
+      <a href="home.html">🏠 Home</a>
+      <a href="enhanced-report.html">📝 Report Hazard</a>
+      <a href="crowd-dashboard.html">📊 Live Dashboard</a>
+      <a href="issues.html" class="active">📋 All Reports</a>
+      <a href="ocean-monitor.html">🌊 Ocean Monitor</a>
+    </div>
+  </nav>
+
+  <!-- Content -->
+  <div class="container">
+    <h1>🚨 Hazard Reports & Emergency Alerts</h1>
+    <p id="count"></p>
+    <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 8px; margin-bottom: 20px;">
+      ⚠️ <strong>Live Monitoring:</strong> Real-time hazard detection with AI analysis and crowd reporting
+    </div>
+
+    <!-- Search & Filters -->
+    <div class="search-filter">
+      <input type="text" id="search" placeholder="Search hazards by title, description, or location...">
+      <select id="typeFilter">
+        <option value="">All Hazard Types</option>
+        <option value="flood">Flood</option>
+        <option value="storm">Storm/Cyclone</option>
+        <option value="tsunami">Tsunami</option>
+        <option value="earthquake">Earthquake</option>
+        <option value="fire">Fire</option>
+        <option value="accident">Accident</option>
+      </select>
+      <select id="severityFilter">
+        <option value="">All Severities</option>
+        <option value="critical">Critical</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <select id="statusFilter">
+        <option value="">All Status</option>
+        <option value="pending">Pending</option>
+        <option value="verified">Verified</option>
+        <option value="resolved">Resolved</option>
+      </select>
+      <select id="sortBy">
+        <option value="latest">Latest</option>
+        <option value="oldest">Oldest</option>
+      </select>
+    </div>
+
+    <!-- Issues List -->
+    <div id="issuesList"></div>
+  </div>
+
+  <script>
+    function loadHazards() {
+      // Get all reports from both storage locations
+      let hazards = JSON.parse(localStorage.getItem("hazardReports")) || [];
+      const issues = JSON.parse(localStorage.getItem('issues') || '[]');
+      
+      // Merge and normalize all reports
+      const allReports = [];
+      
+      // Add hazardReports
+      hazards.forEach(report => {
+        allReports.push({
+          ...report,
+          likes: report.likes || 0,
+          comments: report.comments || []
+        });
+      });
+      
+      // Add issues (avoiding duplicates)
+      issues.forEach(issue => {
+        if (!allReports.find(r => r.id === issue.id)) {
+          allReports.push({
+            ...issue,
+            type: issue.category || issue.type || 'other',
+            severity: issue.priority || issue.severity || 'medium',
+            likes: issue.likes || 0,
+            comments: issue.comments || []
+          });
+        }
+      });
+      
+      hazards = allReports;
+      
+      let list = document.getElementById("issuesList");
+      let count = document.getElementById("count");
+
+      // Filters
+      const search = document.getElementById("search").value.toLowerCase();
+      const type = document.getElementById("typeFilter").value;
+      const severity = document.getElementById("severityFilter").value;
+      const status = document.getElementById("statusFilter").value;
+      const sortBy = document.getElementById("sortBy").value;
+
+      let filtered = hazards.filter(hazard => {
+        return (
+          (hazard.title.toLowerCase().includes(search) || hazard.description.toLowerCase().includes(search)) &&
+          (type === "" || hazard.type === type) &&
+          (severity === "" || hazard.severity === severity) &&
+          (status === "" || hazard.status === status)
+        );
+      });
+
+      // Sort
+      if (sortBy === "latest") {
+        filtered.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      } else {
+        filtered.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+      }
+
+      list.innerHTML = "";
+      count.innerText = filtered.length + " hazard reports found";
+
+      if (filtered.length === 0) {
+        list.innerHTML = "<p>No hazard reports found.</p>";
+        return;
+      }
+
+      filtered.forEach((hazard, index) => {
+        if (!hazard.likes) hazard.likes = 0;
+        if (!hazard.comments) hazard.comments = [];
+        
+        const severityColors = {
+          critical: '#dc3545', high: '#fd7e14', medium: '#ffc107', low: '#28a745'
+        };
+        
+        const statusColors = {
+          pending: '#6c757d', verified: '#007bff', resolved: '#28a745'
+        };
+
+        let card = document.createElement("div");
+        card.className = "issue-card";
+        card.innerHTML = `
+          <div class="issue-info">
+            <div class="issue-title">${hazard.title}</div>
+            <div class="issue-desc">${hazard.description}</div>
+            <div class="meta">Type: ${hazard.type} | Severity: <span style="color: ${severityColors[hazard.severity]}; font-weight: bold;">${hazard.severity.toUpperCase()}</span></div>
+            <div class="meta">People Affected: ${hazard.peopleAffected || 'Unknown'} | Reported by: ${hazard.reporter?.fullName || 'Anonymous'}</div>
+            <div class="meta">Location: ${hazard.latitude?.toFixed(4)}, ${hazard.longitude?.toFixed(4)} | ${new Date(hazard.timestamp).toLocaleString()}</div>
+
+            <div class="actions">
+              <button onclick="verifyHazard(${hazard.id})">✓ Verify</button>
+              <button onclick="likeHazard(${hazard.id})">👍 <span id="like-${hazard.id}">${hazard.likes}</span></button>
+              <button onclick="toggleComments(${hazard.id})">💬 <span id="commentCount-${hazard.id}">${hazard.comments.length}</span></button>
+              <button onclick="shareHazard(${hazard.id})">📤 Share</button>
+            </div>
+
+            <div class="comments" id="comments-${hazard.id}" style="display:none;">
+              <div id="commentList-${hazard.id}">
+                ${hazard.comments.map(c => `<p>💬 ${c}</p>`).join("")}
+              </div>
+              <div class="comment-input">
+                <input type="text" id="commentInput-${hazard.id}" placeholder="Add update or comment...">
+                <button onclick="addComment(${hazard.id})">Post</button>
+              </div>
+            </div>
+          </div>
+          <div class="issue-status" style="background: ${statusColors[hazard.status]}; color: white;">${hazard.status.toUpperCase()}</div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function verifyHazard(id) {
+      // Update in both storage locations
+      let hazards = JSON.parse(localStorage.getItem("hazardReports")) || [];
+      let issues = JSON.parse(localStorage.getItem("issues")) || [];
+      
+      const hazard = hazards.find(h => h.id === id);
+      const issue = issues.find(i => i.id === id);
+      
+      if (hazard) {
+        hazard.status = hazard.status === 'verified' ? 'pending' : 'verified';
+        localStorage.setItem("hazardReports", JSON.stringify(hazards));
+      }
+      if (issue) {
+        issue.status = issue.status === 'verified' ? 'pending' : 'verified';
+        localStorage.setItem("issues", JSON.stringify(issues));
+      }
+      loadHazards();
+    }
+
+    function likeHazard(id) {
+      // Update in both storage locations
+      let hazards = JSON.parse(localStorage.getItem("hazardReports")) || [];
+      let issues = JSON.parse(localStorage.getItem("issues")) || [];
+      
+      const hazard = hazards.find(h => h.id === id);
+      const issue = issues.find(i => i.id === id);
+      
+      if (hazard) {
+        hazard.likes = (hazard.likes || 0) + 1;
+        localStorage.setItem("hazardReports", JSON.stringify(hazards));
+        document.getElementById(`like-${id}`).innerText = hazard.likes;
+      }
+      if (issue) {
+        issue.likes = (issue.likes || 0) + 1;
+        localStorage.setItem("issues", JSON.stringify(issues));
+        if (!hazard) document.getElementById(`like-${id}`).innerText = issue.likes;
+      }
+    }
+
+    function toggleComments(id) {
+      const section = document.getElementById(`comments-${id}`);
+      section.style.display = section.style.display === "none" ? "block" : "none";
+    }
+
+    function addComment(id) {
+      // Update in both storage locations
+      let hazards = JSON.parse(localStorage.getItem("hazardReports")) || [];
+      let issues = JSON.parse(localStorage.getItem("issues")) || [];
+      
+      const hazard = hazards.find(h => h.id === id);
+      const issue = issues.find(i => i.id === id);
+      let input = document.getElementById(`commentInput-${id}`);
+      
+      if (input.value.trim() === "") return;
+      
+      if (hazard) {
+        hazard.comments.push(input.value.trim());
+        localStorage.setItem("hazardReports", JSON.stringify(hazards));
+      }
+      if (issue) {
+        issue.comments.push(input.value.trim());
+        localStorage.setItem("issues", JSON.stringify(issues));
+      }
+      loadHazards();
+    }
+
+    function shareHazard(id) {
+      const hazards = JSON.parse(localStorage.getItem("hazardReports")) || [];
+      const hazard = hazards.find(h => h.id === id);
+      if (hazard) {
+        const text = `🚨 HAZARD ALERT: ${hazard.title} - ${hazard.description} #emergency #${hazard.type}`;
+        if (navigator.share) {
+          navigator.share({ title: hazard.title, text: text, url: window.location.href });
+        } else {
+          navigator.clipboard.writeText(text);
+          alert('Hazard details copied to clipboard!');
+        }
+      }
+    }
+
+    document.getElementById("search").addEventListener("input", loadHazards);
+    document.getElementById("typeFilter").addEventListener("change", loadHazards);
+    document.getElementById("severityFilter").addEventListener("change", loadHazards);
+    document.getElementById("statusFilter").addEventListener("change", loadHazards);
+    document.getElementById("sortBy").addEventListener("change", loadHazards);
+
+    // Auto-refresh every 30 seconds
+    setInterval(loadHazards, 30000);
+
+    // Load on start
+    window.onload = function() {
+      loadHazards();
+    };
+  </script>
+</body>
+</html>

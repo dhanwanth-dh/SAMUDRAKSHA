@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up - </title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: linear-gradient(135deg, #6a85f1, #7f7fd5); min-height: 100vh; }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); position: sticky; top: 0; }
+    .logo { font-size: 20px; font-weight: bold; color: #fff; }
+    .navbar ul { display: flex; gap: 20px; list-style: none; }
+    .navbar ul li a { color: white; text-decoration: none; font-weight: 500; }
+    .navbar ul li a:hover, .navbar .auth a:hover { text-decoration: underline; }
+    .auth { display: flex; gap: 15px; }
+    .auth .signin, .auth .signup { color: white; padding: 6px 14px; border-radius: 20px; text-decoration: none; transition: 0.3s; }
+    .auth .signin:hover { background: rgba(255, 255, 255, 0.2); }
+    .auth .signup { background: #3949ab; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); }
+    .auth .signup.active { background: #2e3bb5; }
+    .form-container { background: white; max-width: 400px; margin: 80px auto; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0px 8px 20px rgba(0,0,0,0.2); }
+    .form-container h2 { margin-bottom: 20px; font-size: 22px; font-weight: bold; }
+    .form-container input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
+    .form-container small { display: block; text-align: left; margin-bottom: 10px; color: #555; font-size: 12px; }
+    .form-container button { width: 100%; padding: 12px; margin-top: 10px; background: linear-gradient(90deg, #3949ab, #5c6bc0); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .form-container button:hover { background: linear-gradient(90deg, #303f9f, #3f51b5); }
+    .form-container p { margin-top: 15px; font-size: 14px; }
+    .form-container p a { color: #3949ab; text-decoration: none; font-weight: 600; }
+    .success-message { display: none; background: #d4edda; color: #155724; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #c3e6cb; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">👤 </div>
+    <ul>
+      <li><a href="home.html">Home</a></li>
+      <li><a href="report.html">Report Issue</a></li>
+      <li><a href="map.html">Map View</a></li>
+      <li><a href="issues.html">Issues</a></li>
+    </ul>
+    <div class="auth">
+      <a href="signin.html" class="signin">Sign in</a>
+      <a href="signup.html" class="signup active">Sign up</a>
+    </div>
+  </nav>
+
+  <div class="form-container">
+    <h2>Create your account</h2>
+    <div id="successMsg" class="success-message">
+      Registration successful! Redirecting to sign in...
+    </div>
+    <form id="signupForm">
+      <input type="text" id="name" placeholder="Full Name" required>
+      <input type="email" id="email" placeholder="Email address" required>
+      <input type="password" id="password" placeholder="Password" required>
+      <small>Must contain at least 6 characters</small>
+      <input type="password" id="confirmPassword" placeholder="Confirm Password" required>
+      <button type="submit">Create account</button>
+    </form>
+    <p>Already have an account? <a href="signin.html">Sign in here</a></p>
+  </div>
+
+  <script>
+    const form = document.getElementById("signupForm");
+    const successMsg = document.getElementById("successMsg");
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const name = document.getElementById("name").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value.trim();
+      const confirmPassword = document.getElementById("confirmPassword").value.trim();
+
+      if (password !== confirmPassword) {
+        alert("Passwords do not match!");
+        return;
+      }
+
+      if (password.length < 6) {
+        alert("Password must be at least 6 characters long.");
+        return;
+      }
+
+      // Save user in localStorage
+      const user = { name, email, password };
+      localStorage.setItem("user", JSON.stringify(user));
+
+      successMsg.style.display = "block";
+
+      setTimeout(() => {
+        window.location.href = "signin.html";
+      }, 2000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Crowd Dashboard</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body { 
+      margin: 0; 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      background: linear-gradient(45deg, #0f0c29, #302b63, #24243e);
+      min-height: 100vh;
+    }
+    .navbar { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: center; 
+      background: linear-gradient(135deg, #1e3c72, #2a5298);
+      padding: 20px 40px; 
+      color: white;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+      position: relative;
+      z-index: 100;
+    }
+    .navbar ul { display: flex; gap: 30px; list-style: none; margin: 0; padding: 0; }
+    .navbar ul li a { 
+      text-decoration: none; 
+      color: white; 
+      font-weight: 600;
+      transition: all 0.3s;
+    }
+    .navbar ul li a:hover {
+      color: #ffd700;
+      transform: translateY(-2px);
+    }
+    .dashboard { 
+      display: grid; 
+      grid-template-columns: 320px 1fr 320px; 
+      gap: 25px; 
+      padding: 25px; 
+      height: calc(100vh - 100px);
+      perspective: 1000px;
+    }
+    .sidebar { 
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border-radius: 20px; 
+      padding: 25px; 
+      overflow-y: auto;
+      box-shadow: 
+        20px 20px 60px #0d1b2a,
+        -20px -20px 60px #1f2937;
+      color: white;
+      transition: all 0.3s;
+    }
+    .sidebar:hover {
+      transform: translateY(-3px) scale(1.01);
+      box-shadow: 
+        0 15px 30px rgba(13,27,42,0.4),
+        0 0 20px rgba(102,126,234,0.1);
+    }
+    .main-map { 
+      background: linear-gradient(145deg, #16213e, #0f3460);
+      border-radius: 20px; 
+      padding: 15px;
+      box-shadow: 
+        20px 20px 60px #0d1b2a,
+        -20px -20px 60px #1f2937;
+      transition: all 0.3s;
+    }
+    .main-map:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 
+        0 20px 40px rgba(13,27,42,0.4),
+        0 0 25px rgba(102,126,234,0.15);
+    }
+    #liveMap { 
+      height: 100%; 
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    h3 {
+      background: linear-gradient(45deg, #667eea, #764ba2, #f093fb);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+    .report-item { 
+      background: rgba(255,255,255,0.05);
+      border-radius: 12px; 
+      padding: 18px; 
+      margin-bottom: 12px; 
+      border-left: 5px solid;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+      transform-style: preserve-3d;
+    }
+    .report-item:hover {
+      transform: translateY(-2px) scale(1.02);
+      background: rgba(255,255,255,0.1);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+    }
+    .critical { border-color: #ff4757; }
+    .high { border-color: #ff7675; }
+    .medium { border-color: #fdcb6e; }
+    .low { border-color: #00b894; }
+    .hotspot { 
+      background: linear-gradient(145deg, rgba(255,193,7,0.1), rgba(255,193,7,0.05));
+      border: 2px solid rgba(255,193,7,0.3);
+      border-radius: 12px; 
+      padding: 15px; 
+      margin-bottom: 12px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .hotspot:hover {
+      transform: translateY(-3px) scale(1.02);
+      border-color: #ffc107;
+    }
+    .social-feed { 
+      max-height: 350px; 
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+    .social-post { 
+      background: rgba(30,144,255,0.1);
+      border: 1px solid rgba(30,144,255,0.2);
+      border-radius: 12px; 
+      padding: 12px; 
+      margin-bottom: 10px; 
+      font-size: 13px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .social-post:hover {
+      transform: translateX(5px);
+      background: rgba(30,144,255,0.15);
+    }
+    .stats-grid { 
+      display: grid; 
+      grid-template-columns: 1fr 1fr; 
+      gap: 15px; 
+      margin-bottom: 25px;
+    }
+    .stat-card { 
+      background: linear-gradient(145deg, rgba(102,126,234,0.1), rgba(118,75,162,0.1));
+      padding: 20px; 
+      border-radius: 15px; 
+      text-align: center;
+      border: 1px solid rgba(102,126,234,0.2);
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .stat-card:hover {
+      transform: translateY(-4px) scale(1.05);
+      border-color: #667eea;
+      box-shadow: 0 10px 25px rgba(102,126,234,0.3);
+    }
+    .stat-number { 
+      font-size: 28px; 
+      font-weight: bold;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .filter-section { margin-bottom: 25px; }
+    .filter-section select, .filter-section input { 
+      width: 100%; 
+      padding: 12px; 
+      margin-bottom: 12px; 
+      border: 2px solid rgba(102,126,234,0.3);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.05);
+      color: white;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .filter-section select:focus, .filter-section input:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 15px rgba(102,126,234,0.3);
+    }
+    select option {
+      background: #1a1a2e;
+      color: white;
+    }
+    .nlp-insights { 
+      background: linear-gradient(145deg, rgba(40,184,148,0.1), rgba(40,184,148,0.05));
+      border: 2px solid rgba(40,184,148,0.2);
+      border-radius: 15px; 
+      padding: 20px; 
+      margin-bottom: 25px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .nlp-insights:hover {
+      transform: translateY(-3px);
+      border-color: #00b894;
+    }
+    .keyword-tag { 
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white; 
+      padding: 4px 12px; 
+      border-radius: 15px; 
+      font-size: 12px; 
+      margin: 3px; 
+      display: inline-block;
+      box-shadow: 0 3px 10px rgba(102,126,234,0.3);
+      transition: all 0.3s;
+    }
+    .keyword-tag:hover {
+      transform: translateY(-2px) scale(1.05);
+    }
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 0.8; }
+      50% { transform: scale(1.2); opacity: 0.4; }
+      100% { transform: scale(1); opacity: 0.8; }
+    }
+    .pulsing-circle {
+      animation: pulse 2s infinite;
+    }
+    .trending-up { color: #dc3545; }
+    .trending-down { color: #28a745; }
+    .trending-stable { color: #ffc107; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo"><strong>📊 Live Crowd Dashboard</strong></div>
+    <ul>
+      <li><a href="home.html">Home</a></li>
+      <li><a href="enhanced-report.html">Report Hazard</a></li>
+      <li><a href="crowd-dashboard.html">Live Dashboard</a></li>
+      <li><a href="ocean-monitor.html">Ocean Monitor</a></li>
+
+    </ul>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <span id="liveIndicator" style="width: 10px; height: 10px; background: #28a745; border-radius: 50%;"></span>
+      <span>Live</span>
+    </div>
+  </nav>
+
+  <div class="dashboard">
+    <!-- Left Sidebar - Reports & Filters -->
+    <div class="sidebar">
+      <h3>📋 Live Reports</h3>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-number" id="totalReports">0</div>
+          <div>Total Reports</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-number" id="activeHotspots">0</div>
+          <div>Active Hotspots</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <h4>🔍 Filters</h4>
+        <select id="severityFilter" onchange="applyFilters()">
+          <option value="">All Severities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+        
+        <select id="typeFilter" onchange="applyFilters()">
+          <option value="">All Types</option>
+          <option value="flood">Flood</option>
+          <option value="storm">Storm</option>
+          <option value="fire">Fire</option>
+          <option value="accident">Accident</option>
+        </select>
+        
+        <input type="range" id="timeFilter" min="1" max="24" value="24" onchange="applyFilters()">
+        <label>Last <span id="timeValue">24</span> hours</label>
+      </div>
+
+      <div id="reportsList"></div>
+    </div>
+
+    <!-- Main Map -->
+    <div class="main-map">
+      <div id="liveMap"></div>
+    </div>
+
+    <!-- Right Sidebar - Hotspots & Social -->
+    <div class="sidebar">
+      <h3>🔥 Dynamic Hotspots</h3>
+      <div id="hotspotsList"></div>
+
+      <div class="nlp-insights">
+        <h4>🤖 NLP Insights</h4>
+        <div id="trendingKeywords"></div>
+        <div style="margin-top: 10px;">
+          <strong>Sentiment:</strong> <span id="overallSentiment">Neutral</span>
+        </div>
+      </div>
+
+      <h3>📱 Social Media Feed</h3>
+      <div class="social-feed" id="socialFeed"></div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    let map, reports = [], hotspots = [], socialPosts = [], realTimeHazards = [];
+    
+    // API Configuration
+    const API_CONFIG = {
+      openWeather: {
+        key: 'demo_key', // Replace with actual API key from https://openweathermap.org/api
+        baseUrl: 'https://api.openweathermap.org/data/2.5'
+      },
+      earthquake: {
+        baseUrl: 'https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary'
+      },
+      cyclone: {
+        baseUrl: 'https://www.nhc.noaa.gov/CurrentStorms.json'
+      }
+    };
+    
+    // Initialize map
+    function initMap() {
+      map = L.map('liveMap').setView([20.5937, 78.9629], 6);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+      
+      // Start real-time hazard monitoring
+      fetchRealTimeHazards();
+      setInterval(fetchRealTimeHazards, 300000); // Update every 5 minutes
+    }
+    
+    // Fetch real-time hazards from multiple APIs
+    async function fetchRealTimeHazards() {
+      try {
+        const hazards = await Promise.allSettled([
+          fetchWeatherHazards(),
+          fetchEarthquakeData(),
+          fetchCycloneData(),
+          fetchFloodAlerts()
+        ]);
+        
+        realTimeHazards = hazards
+          .filter(result => result.status === 'fulfilled')
+          .flatMap(result => result.value);
+        
+        updateRealTimeMarkers();
+        console.log(`Loaded ${realTimeHazards.length} real-time hazards`);
+      } catch (error) {
+        console.error('Error fetching real-time hazards:', error);
+      }
+    }
+    
+    // Fetch weather-related hazards
+    async function fetchWeatherHazards() {
+      // Simulate API call with mock data for demo
+      return [
+        {
+          id: 'weather_1',
+          type: 'storm',
+          severity: 'high',
+          lat: 19.0760,
+          lng: 72.8777,
+          title: 'Severe Thunderstorm Warning',
+          description: 'Heavy rainfall and strong winds expected',
+          source: 'OpenWeatherMap',
+          timestamp: new Date().toISOString(),
+          windSpeed: 85,
+          rainfall: 45
+        },
+        {
+          id: 'weather_2', 
+          type: 'cyclone',
+          severity: 'critical',
+          lat: 13.0827,
+          lng: 80.2707,
+          title: 'Cyclone Alert',
+          description: 'Tropical cyclone approaching coastal areas',
+          source: 'IMD',
+          timestamp: new Date().toISOString(),
+          windSpeed: 120,
+          category: 'Category 2'
+        }
+      ];
+    }
+    
+    // Fetch earthquake data from USGS
+    async function fetchEarthquakeData() {
+      try {
+        const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/significant_day.geojson');
+        const data = await response.json();
+        
+        return data.features
+          .filter(eq => eq.geometry.coordinates[1] >= 6 && eq.geometry.coordinates[1] <= 37 && 
+                       eq.geometry.coordinates[0] >= 68 && eq.geometry.coordinates[0] <= 97)
+          .map(eq => ({
+            id: `earthquake_${eq.id}`,
+            type: 'earthquake',
+            severity: eq.properties.mag >= 6 ? 'critical' : eq.properties.mag >= 4 ? 'high' : 'medium',
+            lat: eq.geometry.coordinates[1],
+            lng: eq.geometry.coordinates[0],
+            title: `Earthquake M${eq.properties.mag}`,
+            description: eq.properties.title,
+            source: 'USGS',
+            timestamp: new Date(eq.properties.time).toISOString(),
+            magnitude: eq.properties.mag,
+            depth: eq.geometry.coordinates[2]
+          }));
+      } catch (error) {
+        console.error('Earthquake API error:', error);
+        return [];
+      }
+    }
+    
+    // Fetch cyclone data
+    async function fetchCycloneData() {
+      // Mock cyclone data for Indian Ocean region
+      return [
+        {
+          id: 'cyclone_1',
+          type: 'cyclone',
+          severity: 'high',
+          lat: 15.2993,
+          lng: 74.1240,
+          title: 'Tropical Depression',
+          description: 'Developing weather system in Arabian Sea',
+          source: 'IMD',
+          timestamp: new Date().toISOString(),
+          windSpeed: 65,
+          pressure: 995
+        }
+      ];
+    }
+    
+    // Fetch flood alerts
+    async function fetchFloodAlerts() {
+      // Mock flood data based on monsoon patterns
+      return [
+        {
+          id: 'flood_1',
+          type: 'flood',
+          severity: 'medium',
+          lat: 26.9124,
+          lng: 75.7873,
+          title: 'Flash Flood Warning',
+          description: 'Heavy monsoon rains causing water logging',
+          source: 'CWC',
+          timestamp: new Date().toISOString(),
+          waterLevel: 'Rising',
+          riskArea: '5km radius'
+        },
+        {
+          id: 'flood_2',
+          type: 'flood', 
+          severity: 'high',
+          lat: 22.5726,
+          lng: 88.3639,
+          title: 'River Flood Alert',
+          description: 'Hooghly River water levels above danger mark',
+          source: 'CWC',
+          timestamp: new Date().toISOString(),
+          waterLevel: 'Critical',
+          riskArea: '10km radius'
+        }
+      ];
+    }
+
+    // Load and display reports
+    function loadReports() {
+      reports = JSON.parse(localStorage.getItem('hazardReports') || '[]');
+      
+      // Start with clean data - no mock reports
+      
+      updateDashboard();
+    }
+
+    function updateDashboard() {
+      // Update stats
+      const totalHazards = reports.length + realTimeHazards.length;
+      document.getElementById('totalReports').textContent = totalHazards;
+      
+      // Generate hotspots (including real-time hazards)
+      generateHotspots();
+      
+      // Update map markers
+      updateMapMarkers();
+      
+      // Update reports list
+      updateReportsList();
+      
+      // Update hotspots list
+      updateHotspotsList();
+      
+      // Generate social media feed
+      generateSocialFeed();
+      
+      // Update NLP insights
+      updateNLPInsights();
+    }
+
+    function generateHotspots() {
+      const locationGroups = {};
+      const now = Date.now();
+      
+      // Combine user reports and real-time hazards for hotspot generation
+      const allHazards = [
+        ...reports.map(r => ({...r, latitude: r.latitude, longitude: r.longitude, isRealTime: false})),
+        ...realTimeHazards.map(h => ({...h, latitude: h.lat, longitude: h.lng, isRealTime: true}))
+      ];
+      
+      // Group reports by proximity (0.01 degree radius ~1km)
+      allHazards.forEach(report => {
+        const reportTime = new Date(report.timestamp).getTime();
+        const hoursSinceReport = (now - reportTime) / (1000 * 60 * 60);
+        
+        // Only include reports from last 24 hours for hotspot generation
+        if (hoursSinceReport <= 24) {
+          const latKey = Math.round(report.latitude * 100) / 100;
+          const lngKey = Math.round(report.longitude * 100) / 100;
+          const key = `${latKey}_${lngKey}`;
+          
+          if (!locationGroups[key]) {
+            locationGroups[key] = { reports: [], lat: latKey, lng: lngKey };
+          }
+          locationGroups[key].reports.push({...report, age: hoursSinceReport});
+        }
+      });
+      
+      hotspots = Object.values(locationGroups)
+        .filter(group => group.reports.length >= 2)
+        .map(group => {
+          const criticalCount = group.reports.filter(r => r.severity === 'critical').length;
+          const highCount = group.reports.filter(r => r.severity === 'high').length;
+          const recentCount = group.reports.filter(r => r.age <= 2).length;
+          
+          // Calculate hotspot intensity
+          let intensity = group.reports.length;
+          if (criticalCount > 0) intensity += criticalCount * 3;
+          if (highCount > 0) intensity += highCount * 2;
+          if (recentCount > 0) intensity += recentCount * 1.5;
+          
+          return {
+            id: Math.random().toString(36).substr(2, 9),
+            lat: group.lat,
+            lng: group.lng,
+            reportCount: group.reports.length,
+            criticalCount,
+            highCount,
+            recentCount,
+            intensity: Math.round(intensity),
+            severity: criticalCount > 0 ? 'critical' : highCount > 0 ? 'high' : 'medium',
+            types: [...new Set(group.reports.map(r => r.type))],
+            lastUpdate: Math.max(...group.reports.map(r => new Date(r.timestamp).getTime())),
+            trend: recentCount > group.reports.length / 2 ? 'increasing' : 'stable',
+            peopleAffected: group.reports.reduce((sum, r) => sum + (parseInt(r.peopleAffected) || 0), 0)
+          };
+        })
+        .sort((a, b) => b.intensity - a.intensity);
+      
+      document.getElementById('activeHotspots').textContent = hotspots.length;
+    }
+
+    function updateMapMarkers() {
+      if (!map) return;
+      
+      // Clear existing markers
+      map.eachLayer(layer => {
+        if (layer instanceof L.Marker || layer instanceof L.Circle) {
+          map.removeLayer(layer);
+        }
+      });
+      
+      // Add report markers
+      reports.forEach(report => {
+        const marker = L.marker([report.latitude, report.longitude])
+          .addTo(map)
+          .bindPopup(`
+            <strong>📋 ${report.title}</strong><br>
+            <strong>Source:</strong> User Report<br>
+            <strong>Severity:</strong> ${report.severity}<br>
+            <strong>Type:</strong> ${report.type}<br>
+            <strong>People Affected:</strong> ${report.peopleAffected || 'Unknown'}<br>
+            <strong>Time:</strong> ${new Date(report.timestamp).toLocaleString()}
+          `);
+      });
+      
+      // Add real-time hazards
+      updateRealTimeMarkers();
+    
+    // Update real-time hazard markers
+    function updateRealTimeMarkers() {
+      if (!map || !realTimeHazards) return;
+      
+      realTimeHazards.forEach(hazard => {
+        const icon = getHazardIcon(hazard.type, hazard.severity);
+        const color = hazard.severity === 'critical' ? '#dc3545' : 
+                     hazard.severity === 'high' ? '#fd7e14' : 
+                     hazard.severity === 'medium' ? '#ffc107' : '#28a745';
+        
+        // Create custom marker
+        const marker = L.marker([hazard.lat, hazard.lng], {
+          icon: L.divIcon({
+            html: `<div style="background: ${color}; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.3);">${icon}</div>`,
+            className: 'real-time-marker',
+            iconSize: [20, 20]
+          })
+        }).addTo(map);
+        
+        // Enhanced popup with real-time data
+        marker.bindPopup(`
+          <div style="min-width: 250px;">
+            <strong>🌐 ${hazard.title}</strong><br>
+            <div style="margin: 8px 0; padding: 8px; background: rgba(102,126,234,0.1); border-radius: 5px;">
+              <strong>Source:</strong> ${hazard.source}<br>
+              <strong>Type:</strong> ${hazard.type.toUpperCase()}<br>
+              <strong>Severity:</strong> <span style="color: ${color}; font-weight: bold;">${hazard.severity.toUpperCase()}</span><br>
+              <strong>Time:</strong> ${new Date(hazard.timestamp).toLocaleString()}<br>
+              ${getHazardDetails(hazard)}
+            </div>
+            <div style="font-size: 12px; color: #666;">
+              ${hazard.description}
+            </div>
+          </div>
+        `);
+      });
+    }
+    
+    // Get appropriate icon for hazard type
+    function getHazardIcon(type, severity) {
+      const icons = {
+        earthquake: '🌋',
+        cyclone: '🌀',
+        storm: '⛈️',
+        flood: '🌊',
+        fire: '🔥',
+        tsunami: '🌊',
+        landslide: '🏔️'
+      };
+      return icons[type] || '⚠️';
+    }
+    
+    // Get hazard-specific details for popup
+    function getHazardDetails(hazard) {
+      switch (hazard.type) {
+        case 'earthquake':
+          return `<strong>Magnitude:</strong> ${hazard.magnitude}<br><strong>Depth:</strong> ${hazard.depth}km`;
+        case 'cyclone':
+        case 'storm':
+          return `<strong>Wind Speed:</strong> ${hazard.windSpeed} km/h<br><strong>Category:</strong> ${hazard.category || 'N/A'}`;
+        case 'flood':
+          return `<strong>Water Level:</strong> ${hazard.waterLevel}<br><strong>Risk Area:</strong> ${hazard.riskArea}`;
+        default:
+          return '';
+      }
+    }
+      
+      // Add enhanced hotspot circles
+      hotspots.forEach((hotspot, index) => {
+        const color = hotspot.severity === 'critical' ? '#dc3545' : 
+                     hotspot.severity === 'high' ? '#fd7e14' : '#ffc107';
+        
+        // Main hotspot circle
+        const circle = L.circle([hotspot.lat, hotspot.lng], {
+          color: color,
+          fillColor: color,
+          fillOpacity: 0.4,
+          weight: 3,
+          radius: Math.max(hotspot.intensity * 1000, 2000)
+        }).addTo(map);
+        
+        // Pulsing outer circle for high-intensity hotspots
+        if (hotspot.intensity > 10) {
+          L.circle([hotspot.lat, hotspot.lng], {
+            color: color,
+            fillColor: 'transparent',
+            weight: 2,
+            opacity: 0.6,
+            radius: hotspot.intensity * 1500,
+            className: 'pulsing-circle'
+          }).addTo(map);
+        }
+        
+        circle.bindPopup(`
+          <div style="min-width: 200px;">
+            <strong>🔥 Hotspot #${index + 1}</strong><br>
+            <div style="margin: 8px 0;">
+              <strong>Intensity:</strong> ${hotspot.intensity}/100<br>
+              <strong>Reports:</strong> ${hotspot.reportCount} (${hotspot.recentCount} recent)<br>
+              <strong>Types:</strong> ${hotspot.types.join(', ')}<br>
+              <strong>Severity:</strong> ${hotspot.severity.toUpperCase()}<br>
+              <strong>People Affected:</strong> ${hotspot.peopleAffected}+<br>
+              <strong>Trend:</strong> ${hotspot.trend === 'increasing' ? '📈 Increasing' : '📊 Stable'}
+            </div>
+            ${hotspot.criticalCount > 0 ? `<div style="color: #dc3545; font-weight: bold;">⚠️ ${hotspot.criticalCount} Critical Reports</div>` : ''}
+          </div>
+        `);
+      });
+    }
+
+    function updateReportsList() {
+      const container = document.getElementById('reportsList');
+      
+      // Combine user reports and real-time hazards
+      const allReports = [
+        ...reports.map(r => ({...r, source: 'User Report', isRealTime: false})),
+        ...realTimeHazards.map(h => ({...h, latitude: h.lat, longitude: h.lng, isRealTime: true}))
+      ].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      
+      container.innerHTML = allReports.slice(0, 15).map(report => {
+        const icon = report.isRealTime ? getHazardIcon(report.type, report.severity) : '📋';
+        const sourceColor = report.isRealTime ? '#007bff' : '#6c757d';
+        
+        return `
+          <div class="report-item ${report.severity}" onclick="focusOnReport(${report.latitude}, ${report.longitude})">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong>${icon} ${report.title}</strong>
+              ${report.isRealTime ? '<span style="font-size: 10px; background: #007bff; color: white; padding: 2px 6px; border-radius: 8px;">LIVE</span>' : ''}
+            </div>
+            <div style="font-size: 12px; color: #666;">
+              ${report.type} • ${report.severity} • ${new Date(report.timestamp).toLocaleTimeString()}
+            </div>
+            <div style="font-size: 11px; margin-top: 5px; color: ${sourceColor};">
+              📡 ${report.source || 'User Report'}
+            </div>
+            <div style="font-size: 11px; margin-top: 3px;">
+              ${report.description.substring(0, 80)}...
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateHotspotsList() {
+      const container = document.getElementById('hotspotsList');
+      
+      if (hotspots.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #666; padding: 20px;">🟢 No active hotspots detected</div>';
+        return;
+      }
+      
+      container.innerHTML = hotspots.map((hotspot, index) => {
+        const trendIcon = hotspot.trend === 'increasing' ? '📈' : '📊';
+        const severityIcon = hotspot.severity === 'critical' ? '🔴' : hotspot.severity === 'high' ? '🟠' : '🟡';
+        const timeAgo = Math.round((Date.now() - hotspot.lastUpdate) / (1000 * 60));
+        
+        return `
+          <div class="hotspot" onclick="focusOnReport(${hotspot.lat}, ${hotspot.lng})" style="border-left: 4px solid ${hotspot.severity === 'critical' ? '#dc3545' : hotspot.severity === 'high' ? '#fd7e14' : '#ffc107'}">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <strong>${severityIcon} Hotspot #${index + 1}</strong>
+              <span style="font-size: 12px; background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 10px;">
+                Intensity: ${hotspot.intensity}
+              </span>
+            </div>
+            <div style="font-size: 12px; margin-top: 8px;">
+              📊 ${hotspot.reportCount} reports ${trendIcon}<br>
+              🏷️ ${hotspot.types.join(', ')}<br>
+              👥 ${hotspot.peopleAffected}+ affected<br>
+              ⏰ ${timeAgo}min ago
+              ${hotspot.criticalCount > 0 ? `<br>🚨 ${hotspot.criticalCount} critical` : ''}
+              ${hotspot.recentCount > 0 ? `<br>🆕 ${hotspot.recentCount} recent` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function generateSocialFeed() {
+      const platforms = ['Twitter', 'Facebook', 'Instagram', 'Reddit', 'Telegram'];
+      const platformIcons = {'Twitter': '🐦', 'Facebook': '📘', 'Instagram': '📷', 'Reddit': '🤖', 'Telegram': '✈️'};
+      
+      // Generate realistic social media posts
+      socialPosts = [];
+      
+      reports.forEach(report => {
+        const baseTime = new Date(report.timestamp).getTime();
+        
+        // Generate multiple posts per report with varying content
+        const postTemplates = [
+          `🚨 BREAKING: ${report.title} reported in the area. Stay safe! #emergency #${report.type} #alert`,
+          `Local authorities are responding to ${report.type} situation. Avoid the area if possible. #safety #${report.type}`,
+          `Witnessing ${report.type} incident right now. Emergency services on scene. #live #emergency #${report.type}`,
+          `UPDATE: ${report.description.substring(0, 60)}... More details as they develop. #${report.type} #news`,
+          `Please share - ${report.type} emergency in progress. People need help! #help #emergency #${report.type}`,
+          `Traffic alert: ${report.type} causing delays in the area. Find alternate routes. #traffic #${report.type}`,
+          `Emergency services doing amazing work responding to ${report.type}. Thank you first responders! 🙏 #heroes #${report.type}`
+        ];
+        
+        // Create 2-4 posts per report
+        const numPosts = Math.floor(Math.random() * 3) + 2;
+        for (let i = 0; i < numPosts; i++) {
+          const platform = platforms[Math.floor(Math.random() * platforms.length)];
+          const template = postTemplates[Math.floor(Math.random() * postTemplates.length)];
+          const postTime = baseTime + (Math.random() * 2 * 60 * 60 * 1000); // Within 2 hours of report
+          
+          socialPosts.push({
+            platform,
+            icon: platformIcons[platform],
+            content: template,
+            timestamp: new Date(postTime),
+            engagement: Math.floor(Math.random() * 200) + 10,
+            verified: Math.random() > 0.7,
+            sentiment: template.includes('thank') || template.includes('amazing') ? 'positive' : 
+                      template.includes('emergency') || template.includes('danger') ? 'negative' : 'neutral',
+            hashtags: template.match(/#\w+/g) || [],
+            relevanceScore: Math.random() * 0.3 + 0.7 // 0.7-1.0
+          });
+        }
+      });
+      
+      // Add some general emergency-related posts
+      const generalPosts = [
+        '📢 Emergency services remind everyone to have emergency kits ready. Better safe than sorry! #preparedness #safety',
+        '🌡️ Weather alert: Monitor conditions in your area and stay informed. #weather #safety #alert',
+        '📱 Download emergency apps and keep emergency contacts handy. You never know when you might need them. #emergency #apps',
+        '🚨 If you see something, report it! Community reporting helps keep everyone safe. #community #safety #reporting'
+      ];
+      
+      generalPosts.forEach(content => {
+        socialPosts.push({
+          platform: platforms[Math.floor(Math.random() * platforms.length)],
+          icon: platformIcons[platforms[Math.floor(Math.random() * platforms.length)]],
+          content,
+          timestamp: new Date(Date.now() - Math.random() * 6 * 60 * 60 * 1000),
+          engagement: Math.floor(Math.random() * 50) + 5,
+          verified: Math.random() > 0.8,
+          sentiment: 'positive',
+          hashtags: content.match(/#\w+/g) || [],
+          relevanceScore: Math.random() * 0.2 + 0.5
+        });
+      });
+      
+      // Sort by relevance and recency
+      socialPosts.sort((a, b) => {
+        const aScore = a.relevanceScore + (a.engagement / 1000) + (a.verified ? 0.1 : 0);
+        const bScore = b.relevanceScore + (b.engagement / 1000) + (b.verified ? 0.1 : 0);
+        return bScore - aScore;
+      });
+      
+      socialPosts = socialPosts.slice(0, 20);
+      
+      const container = document.getElementById('socialFeed');
+      container.innerHTML = socialPosts.map(post => {
+        const timeAgo = Math.round((Date.now() - post.timestamp.getTime()) / (1000 * 60));
+        const sentimentColor = post.sentiment === 'positive' ? '#28a745' : 
+                              post.sentiment === 'negative' ? '#dc3545' : '#6c757d';
+        
+        return `
+          <div class="social-post" style="border-left: 3px solid ${sentimentColor};">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+              <strong>${post.icon} ${post.platform}</strong>
+              <div style="font-size: 11px;">
+                ${post.verified ? '✅' : ''} ${post.engagement} 💬 ${timeAgo}m
+              </div>
+            </div>
+            <div style="font-size: 13px; line-height: 1.3;">${post.content}</div>
+            <div style="margin-top: 5px; font-size: 11px; opacity: 0.7;">
+              Relevance: ${Math.round(post.relevanceScore * 100)}% • ${post.hashtags.slice(0, 3).join(' ')}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateNLPInsights() {
+      // Extract keywords from reports and social posts
+      const allText = [...reports.map(r => r.description), ...socialPosts.map(p => p.content)].join(' ');
+      const keywords = extractKeywords(allText);
+      
+      document.getElementById('trendingKeywords').innerHTML = keywords.map(keyword => 
+        `<span class="keyword-tag">${keyword}</span>`
+      ).join('');
+      
+      // Simple sentiment analysis
+      const negativeWords = ['danger', 'emergency', 'severe', 'critical', 'disaster'];
+      const positiveWords = ['safe', 'help', 'rescue', 'support', 'recovery'];
+      
+      const negCount = negativeWords.reduce((count, word) => 
+        count + (allText.toLowerCase().match(new RegExp(word, 'g')) || []).length, 0);
+      const posCount = positiveWords.reduce((count, word) => 
+        count + (allText.toLowerCase().match(new RegExp(word, 'g')) || []).length, 0);
+      
+      const sentiment = negCount > posCount ? 'Negative' : posCount > negCount ? 'Positive' : 'Neutral';
+      document.getElementById('overallSentiment').textContent = sentiment;
+    }
+
+    function extractKeywords(text) {
+      const words = text.toLowerCase().match(/\b\w+\b/g) || [];
+      const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
+      const filtered = words.filter(word => word.length > 3 && !stopWords.includes(word));
+      
+      const frequency = {};
+      filtered.forEach(word => frequency[word] = (frequency[word] || 0) + 1);
+      
+      return Object.entries(frequency)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 10)
+        .map(([word]) => word);
+    }
+
+    function focusOnReport(lat, lng) {
+      map.setView([lat, lng], 12);
+    }
+
+    function applyFilters() {
+      const severity = document.getElementById('severityFilter').value;
+      const type = document.getElementById('typeFilter').value;
+      const hours = document.getElementById('timeFilter').value;
+      
+      document.getElementById('timeValue').textContent = hours;
+      
+      // Filter reports based on criteria
+      // Implementation would filter the reports array and update display
+      updateDashboard();
+    }
+
+    // Auto-refresh every 30 seconds
+    setInterval(() => {
+      loadReports();
+      // Simulate live indicator blinking
+      const indicator = document.getElementById('liveIndicator');
+      indicator.style.background = '#ffc107';
+      setTimeout(() => indicator.style.background = '#28a745', 200);
+    }, 30000);
+    
+    // Add real-time hazard status to navbar
+    function updateHazardStatus() {
+      const criticalCount = realTimeHazards.filter(h => h.severity === 'critical').length;
+      const highCount = realTimeHazards.filter(h => h.severity === 'high').length;
+      
+      if (criticalCount > 0) {
+        document.querySelector('.navbar').style.borderBottom = '3px solid #dc3545';
+      } else if (highCount > 0) {
+        document.querySelector('.navbar').style.borderBottom = '3px solid #fd7e14';
+      } else {
+        document.querySelector('.navbar').style.borderBottom = '3px solid #28a745';
+      }
+    }
+
+    // Initialize
+    window.onload = () => {
+      initMap();
+      loadReports();
+      
+      // Add small delay to ensure map is ready
+      setTimeout(() => {
+        updateHazardStatus();
+        setInterval(updateHazardStatus, 60000);
+      }, 1000);
+    };
+    
+    // API Key Configuration Helper
+    function configureAPIs() {
+      // To use real APIs, replace 'demo_key' with actual API keys:
+      // 1. OpenWeatherMap: Get free key at https://openweathermap.org/api
+      // 2. USGS Earthquake data is free (no key required)
+      // 3. For production, consider paid APIs for more accurate data
+      
+      console.log('API Configuration:');
+      console.log('- OpenWeatherMap: Replace demo_key with real API key');
+      console.log('- USGS Earthquake: No key required (free)');
+      console.log('- Real-time hazards: Currently using mock data for demo');
+    }
+    
+    // Call configuration helper
+    configureAPIs();
+  </script>
+</body>
+</html>

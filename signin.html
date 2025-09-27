@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - Naagrik</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; }
+    body { background: linear-gradient(135deg, #6a85f1, #7f7fd5); min-height: 100vh; }
+    .navbar { display: flex; justify-content: space-between; align-items: center; padding: 15px 50px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); position: sticky; top: 0; }
+    .logo { font-size: 20px; font-weight: bold; color: #fff; }
+    .navbar ul { display: flex; gap: 20px; list-style: none; }
+    .navbar ul li a { color: white; text-decoration: none; font-weight: 500; }
+    .navbar ul li a:hover, .navbar .auth a:hover { text-decoration: underline; }
+    .auth { display: flex; gap: 15px; }
+    .auth .signin, .auth .signup { color: white; padding: 6px 14px; border-radius: 20px; text-decoration: none; transition: 0.3s; }
+    .auth .signup:hover { background: rgba(255, 255, 255, 0.2); }
+    .auth .signin { background: #3949ab; box-shadow: 0px 4px 10px rgba(0,0,0,0.2); }
+    .auth .signin.active { background: #2e3bb5; }
+    .form-container { background: white; max-width: 380px; margin: 80px auto; padding: 30px; border-radius: 15px; text-align: center; box-shadow: 0px 8px 20px rgba(0,0,0,0.2); }
+    .form-container h2 { margin-bottom: 20px; font-size: 22px; font-weight: bold; }
+    .form-container input { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; font-size: 14px; }
+    .form-container button { width: 100%; padding: 12px; margin-top: 10px; background: linear-gradient(90deg, #3949ab, #5c6bc0); color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+    .form-container button:hover { background: linear-gradient(90deg, #303f9f, #3f51b5); }
+    .form-container p { margin-top: 15px; font-size: 14px; }
+    .form-container p a { color: #3949ab; text-decoration: none; font-weight: 600; }
+    .success-message { display: none; background: #d4edda; color: #155724; padding: 10px; margin-bottom: 15px; border-radius: 6px; border: 1px solid #c3e6cb; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="logo">👤 </div>
+    <ul>
+      <li><a href="home.html">Home</a></li>
+      <li><a href="report.html">Report Issue</a></li>
+      <li><a href="map.html">Map View</a></li>
+      <li><a href="issues.html">Issues</a></li>
+    </ul>
+    <div class="auth">
+      <a href="signin.html" class="signin active">Sign in</a>
+      <a href="signup.html" class="signup">Sign up</a>
+    </div>
+  </nav>
+
+  <div class="form-container">
+    <h2>Welcome Back</h2>
+    <div id="successMsg" class="success-message">
+      Login successful! Redirecting to home page...
+    </div>
+    <form id="signinForm">
+      <input type="email" placeholder="Email address" required>
+      <input type="password" placeholder="Password" required>
+      <button type="submit">Sign In</button>
+    </form>
+    <p>Don't have an account? <a href="signup.html">Sign up here</a></p>
+  </div>
+
+  <script>
+    const form = document.getElementById("signinForm");
+    const successMsg = document.getElementById("successMsg");
+
+    form.addEventListener("submit", function(e) {
+      e.preventDefault();
+
+      const email = form.querySelector('input[type="email"]').value.trim();
+      const password = form.querySelector('input[type="password"]').value.trim();
+
+      const savedUser = JSON.parse(localStorage.getItem("user"));
+
+      if (savedUser && savedUser.email === email && savedUser.password === password) {
+        successMsg.style.display = "block";
+        setTimeout(() => { window.location.href = "home.html"; }, 2000);
+      } else {
+        alert("Invalid email or password! Please try again.");
+      }
+    });
+  </script>
+</body>
+</html>

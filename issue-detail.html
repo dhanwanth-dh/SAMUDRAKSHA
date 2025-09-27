@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Issue Details - Naagrik</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f7f8fc; margin: 0; padding: 20px; }
+    .card { background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); max-width: 700px; margin: auto; }
+    h2 { margin-top: 0; }
+    .meta { font-size: 14px; color: #777; margin-bottom: 10px; }
+    .actions button { margin-right: 10px; }
+    .comment { padding: 6px 10px; background: #f1f1f1; border-radius: 6px; margin: 5px 0; }
+  </style>
+</head>
+<body>
+  <div class="card" id="issueDetails"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const index = params.get("index");
+    let issues = JSON.parse(localStorage.getItem("issues")) || [];
+    let issue = issues[index];
+
+    if (issue) {
+      document.getElementById("issueDetails").innerHTML = `
+        <h2>${issue.title}</h2>
+        <p>${issue.description}</p>
+        <div class="meta">
+          Category: ${issue.category} | Zone: ${issue.zone} <br>
+          Priority: ${issue.priority} | Location: ${issue.latitude}, ${issue.longitude}
+        </div>
+        <div class="actions">
+          <button onclick="likeIssue(${index})">👍 ${issue.likes || 0}</button>
+          <button onclick="dislikeIssue(${index})">👎 ${issue.dislikes || 0}</button>
+        </div>
+        <h3>Comments</h3>
+        <div id="comments">${(issue.comments || []).map(c => `<div class="comment">💬 ${c}</div>`).join("")}</div>
+        <input type="text" id="commentInput" placeholder="Write a comment..." />
+        <button onclick="saveComment(${index})">Post</button>
+      `;
+    }
+
+    function likeIssue(i) {
+      issues[i].likes = (issues[i].likes || 0) + 1;
+      localStorage.setItem("issues", JSON.stringify(issues));
+      location.reload();
+    }
+
+    function dislikeIssue(i) {
+      issues[i].dislikes = (issues[i].dislikes || 0) + 1;
+      localStorage.setItem("issues", JSON.stringify(issues));
+      location.reload();
+    }
+
+    function saveComment(i) {
+      let val = document.getElementById("commentInput").value;
+      if (val.trim()) {
+        issues[i].comments = issues[i].comments || [];
+        issues[i].comments.push(val);
+        localStorage.setItem("issues", JSON.stringify(issues));
+        location.reload();
+      }
+    }
+  </script>
+</body>
+</html>

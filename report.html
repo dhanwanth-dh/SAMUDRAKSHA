@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Issue - Naagrik</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    body {
+      margin: 0;
+      font-family: "Segoe UI", sans-serif;
+      background: #f4f6fb;
+      color: #333;
+    }
+
+    /* Navbar */
+    .navbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #6a75f0;
+      padding: 15px 40px;
+      color: white;
+    }
+
+    .navbar ul {
+      display: flex;
+      gap: 25px;
+      list-style: none;
+    }
+
+    .navbar ul li a {
+      text-decoration: none;
+      color: white;
+      font-weight: 500;
+    }
+
+    .auth {
+      display: flex;
+      gap: 15px;
+    }
+
+    .auth a {
+      text-decoration: none;
+      color: white;
+      font-weight: bold;
+    }
+
+    /* Layout */
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      padding: 30px 60px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+    }
+
+    h2 {
+      margin-bottom: 15px;
+      font-size: 20px;
+      font-weight: bold;
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      margin-bottom: 6px;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    textarea {
+      resize: none;
+      height: 80px;
+    }
+
+    /* Priority Options */
+    .priority {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .priority label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .priority input {
+      transform: scale(1.2);
+    }
+
+    .priority .low { color: green; }
+    .priority .medium { color: orange; }
+    .priority .high { color: red; }
+
+    /* Upload box */
+    .upload-box {
+      margin-top: 15px;
+      padding: 20px;
+      border: 2px dashed #aaa;
+      border-radius: 10px;
+      text-align: center;
+      color: #555;
+      font-size: 14px;
+    }
+
+    .upload-box input {
+      margin-top: 10px;
+    }
+
+    /* Map */
+    #map {
+      height: 250px;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    /* Button */
+    button {
+      margin-top: 20px;
+      width: 100%;
+      padding: 12px;
+      background: #3949ab;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #2e3bb5;
+    }
+
+    /* Success Page */
+    .success-message {
+      display: none;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f4f6fb;
+    }
+
+    .success-box {
+      background: #d4edda;
+      border: 2px solid #155724;
+      border-radius: 12px;
+      padding: 40px 60px;
+      text-align: center;
+      box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+      animation: pop 0.4s ease-in-out;
+    }
+
+    .success-icon {
+      font-size: 40px;
+      color: #155724;
+      margin-bottom: 10px;
+      font-weight: bold;
+    }
+
+    @keyframes pop {
+      0% { transform: scale(0.7); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo"><strong>👤 </strong></div>
+    <ul>
+      <li><a href="home.html">Home</a></li>
+      <li><a href="report.html">Report Issue</a></li>
+      <li><a href="map.html">Map View</a></li>
+      <li><a href="issues.html">Issues</a></li>
+    </ul>
+    <div class="auth">
+      <a href="signin.html">Sign in</a>
+      <a href="signup.html">Sign up</a>
+    </div>
+  </nav>
+
+  <!-- Report Form -->
+  <div class="container" id="reportFormPage">
+    <div class="card">
+      <h2>Issue Details</h2>
+      <form id="reportForm">
+        <label>Issue Title *</label>
+        <input type="text" required placeholder="Brief, descriptive title for the issue">
+
+        <label>Description *</label>
+        <textarea required placeholder="Provide detailed information about the issue"></textarea>
+
+        <label>Category *</label>
+        <select required>
+          <option value="">Select a category</option>
+          <option>Roads</option>
+          <option>Water Supply</option>
+          <option>Electricity</option>
+          <option>Garbage</option>
+        </select>
+
+        <label>Zone *</label>
+        <select required>
+          <option value="">Select a zone</option>
+          <option>North</option>
+          <option>South</option>
+          <option>East</option>
+          <option>West</option>
+        </select>
+
+        <label>Priority Level</label>
+        <div class="priority">
+          <label><input type="radio" name="priority" value="low"> <span class="low">Low Priority</span></label>
+          <label><input type="radio" name="priority" value="medium"> <span class="medium">Medium Priority</span></label>
+          <label><input type="radio" name="priority" value="high"> <span class="high">High Priority</span></label>
+        </div>
+
+        <div class="upload-box">
+          <p>📷 Upload Photos or Videos (Optional)</p>
+          <input type="file" multiple accept="image/*,video/*">
+        </div>
+
+        <button type="submit">Submit Issue Report</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Location Selection</h2>
+      <label>Latitude *</label>
+      <input type="text" id="latitude" required>
+
+      <label>Longitude *</label>
+      <input type="text" id="longitude" required>
+
+      <label>Address or Landmark (Optional)</label>
+      <input type="text" placeholder="e.g., 123 Main St, Near Park">
+
+      <button type="button" id="getLocationBtn">📍 Get My Current Location</button>
+
+      <div id="map"></div>
+    </div>
+  </div>
+
+  <!-- Success Page -->
+  <div class="success-message" id="successPage">
+    <div class="success-box">
+      <div class="success-icon">✔</div>
+      <h2>Issue Submitted Successfully!</h2>
+      <p>Thank you for reporting. We’ll review your issue soon.</p>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script>
+    const reportForm = document.getElementById("reportForm");
+    const reportPage = document.getElementById("reportFormPage");
+    const successPage = document.getElementById("successPage");
+    const latInput = document.getElementById("latitude");
+    const lonInput = document.getElementById("longitude");
+    const getLocationBtn = document.getElementById("getLocationBtn");
+
+    // Initialize Map
+    const map = L.map("map").setView([22.320664, 87.301898], 13);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors"
+    }).addTo(map);
+
+    let marker;
+
+    // Set marker on map click
+    map.on("click", function(e) {
+      const { lat, lng } = e.latlng;
+      if (marker) {
+        marker.setLatLng([lat, lng]);
+      } else {
+        marker = L.marker([lat, lng]).addTo(map);
+      }
+      latInput.value = lat.toFixed(6);
+      lonInput.value = lng.toFixed(6);
+    });
+
+    // Get current location
+    getLocationBtn.addEventListener("click", () => {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((pos) => {
+          const lat = pos.coords.latitude;
+          const lon = pos.coords.longitude;
+          latInput.value = lat.toFixed(6);
+          lonInput.value = lon.toFixed(6);
+          map.setView([lat, lon], 15);
+          if (marker) {
+            marker.setLatLng([lat, lon]);
+          } else {
+            marker = L.marker([lat, lon]).addTo(map);
+          }
+        });
+      } else {
+        alert("Geolocation is not supported by your browser.");
+      }
+    });
+// Form Submit
+reportForm.addEventListener("submit", function(e) {
+  e.preventDefault();
+  // Save issue details to localStorage (or backend later)
+  const newIssue = {
+    title: reportForm.querySelector("input[type='text']").value,
+    description: reportForm.querySelector("textarea").value,
+    category: reportForm.querySelector("select").value,
+    zone: reportForm.querySelectorAll("select")[1].value,
+    priority: document.querySelector("input[name='priority']:checked")?.value || "none",
+    latitude: latInput.value,
+longitude: lonInput.value,
+
+    reportedBy: "Citizen",
+    status: "Open",
+    time: new Date().toLocaleString()
+  };
+
+  // Store in localStorage
+  const issues = JSON.parse(localStorage.getItem("issues")) || [];
+  issues.push(newIssue);
+  localStorage.setItem("issues", JSON.stringify(issues));
+
+  // Redirect to issues page
+  window.location.href = "issues.html";
+});
+
+  </script>
+</body>
+</html>
