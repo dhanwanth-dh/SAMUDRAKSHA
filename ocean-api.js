@@ -1,14 +1,12 @@
-// Ocean Hazard Monitoring API Service
+
 class OceanMonitorAPI {
   constructor() {
-    this.apiKey = 'demo-key'; // Replace with actual API key
+    this.apiKey = 'demo-key';
     this.baseURL = 'https://api.openweathermap.org/data/2.5';
     this.hazards = [];
     this.sensors = new Map();
     this.predictions = [];
   }
-
-  // Initialize monitoring system
   async initialize() {
     await this.loadSensorData();
     await this.fetchWeatherData();
@@ -16,10 +14,8 @@ class OceanMonitorAPI {
     return { status: 'initialized', timestamp: new Date().toISOString() };
   }
 
-  // Fetch real-time weather and ocean data
   async fetchWeatherData() {
     try {
-      // Simulate API call - replace with actual weather service
       const mockData = {
         current: {
           temp: 24 + Math.random() * 6,
@@ -30,7 +26,7 @@ class OceanMonitorAPI {
         },
         forecast: this.generateForecast()
       };
-      
+
       this.processWeatherData(mockData);
       return mockData;
     } catch (error) {
@@ -54,11 +50,9 @@ class OceanMonitorAPI {
     return forecast;
   }
 
-  // Process and analyze weather data for hazards
   processWeatherData(data) {
     this.hazards = [];
-    
-    // Storm detection
+
     if (data.current.windSpeed > 50) {
       this.hazards.push({
         type: 'storm',
@@ -105,7 +99,7 @@ class OceanMonitorAPI {
     this.hazards.forEach(hazard => {
       const distance = this.calculateDistance(location, hazard.location);
       const proximity = Math.max(0, 1 - distance / 100); // Risk decreases with distance
-      
+
       switch (hazard.type) {
         case 'storm':
           riskFactors.storm += proximity * (hazard.severity === 'high' ? 0.8 : 0.5);
@@ -123,7 +117,7 @@ class OceanMonitorAPI {
     });
 
     const overallRisk = Math.min(1, Object.values(riskFactors).reduce((a, b) => a + b, 0));
-    
+
     return {
       overallRisk: overallRisk,
       riskLevel: overallRisk > 0.7 ? 'high' : overallRisk > 0.4 ? 'medium' : 'low',
@@ -161,7 +155,7 @@ class OceanMonitorAPI {
   // AI Chat Response System
   processAIQuery(query) {
     const lowerQuery = query.toLowerCase();
-    
+
     if (lowerQuery.includes('current') || lowerQuery.includes('now')) {
       return this.getCurrentConditionsResponse();
     } else if (lowerQuery.includes('forecast') || lowerQuery.includes('predict')) {
@@ -179,10 +173,10 @@ class OceanMonitorAPI {
   }
 
   getCurrentConditionsResponse() {
-    const currentHazards = this.hazards.filter(h => 
+    const currentHazards = this.hazards.filter(h =>
       new Date() - new Date(h.timestamp) < 3600000 // Last hour
     );
-    
+
     return {
       response: `Current conditions: ${currentHazards.length} active hazards detected. Wind speeds up to 45 km/h, wave heights 2.3m. ${currentHazards.length > 0 ? 'Caution advised.' : 'Conditions are relatively stable.'}`,
       type: 'current',
@@ -220,10 +214,10 @@ class OceanMonitorAPI {
     const R = 6371; // Earth's radius in km
     const dLat = (pos2.lat - pos1.lat) * Math.PI / 180;
     const dLon = (pos2.lng - pos1.lng) * Math.PI / 180;
-    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-              Math.cos(pos1.lat * Math.PI / 180) * Math.cos(pos2.lat * Math.PI / 180) *
-              Math.sin(dLon/2) * Math.sin(dLon/2);
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(pos1.lat * Math.PI / 180) * Math.cos(pos2.lat * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   }
 
   async loadSensorData() {
@@ -249,7 +243,7 @@ class OceanMonitorAPI {
       hazards: this.hazards,
       sensorStatus: Object.fromEntries(this.sensors)
     };
-    
+
     // In a real implementation, this would use WebSockets
     console.log('Broadcasting update:', update);
   }
